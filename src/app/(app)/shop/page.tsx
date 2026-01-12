@@ -29,47 +29,43 @@ export default async function ShopPage({ searchParams }: Props) {
       categories: true,
       priceInGBP: true,
     },
-    ...(sort ? { sort } : { sort: 'title' }),
-    ...(searchValue || category
-      ? {
-          where: {
-            and: [
+    sort: sort ? String(sort) : 'title',
+    where: {
+      and: [
+        {
+          _status: {
+            equals: 'published',
+          },
+        },
+        ...(searchValue
+          ? [
               {
-                _status: {
-                  equals: 'published',
+                or: [
+                  {
+                    title: {
+                      like: searchValue,
+                    },
+                  },
+                  {
+                    description: {
+                      like: searchValue,
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+        ...(category
+          ? [
+              {
+                categories: {
+                  contains: category,
                 },
               },
-              ...(searchValue
-                ? [
-                    {
-                      or: [
-                        {
-                          title: {
-                            like: searchValue,
-                          },
-                        },
-                        {
-                          description: {
-                            like: searchValue,
-                          },
-                        },
-                      ],
-                    },
-                  ]
-                : []),
-              ...(category
-                ? [
-                    {
-                      categories: {
-                        contains: category,
-                      },
-                    },
-                  ]
-                : []),
-            ],
-          },
-        }
-      : {}),
+            ]
+          : []),
+      ],
+    },
   })
 
   const resultsText = products.docs.length > 1 ? 'results' : 'result'
@@ -85,10 +81,13 @@ export default async function ShopPage({ searchParams }: Props) {
         </p>
       ) : null}
 
-      {!searchValue && products.docs?.length === 0 && (
-        <p className="mb-4 text-foreground font-primary">
-          No products found. Please try different filters.
-        </p>
+      {products.docs?.length === 0 && !searchValue && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No products available yet.</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Add products in the admin panel to see them here.
+          </p>
+        </div>
       )}
 
       {products?.docs.length > 0 ? (

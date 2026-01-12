@@ -1,6 +1,3 @@
-import { CallToAction } from '@/blocks/CallToAction/config'
-import { Content } from '@/blocks/Content/config'
-import { MediaBlock } from '@/blocks/MediaBlock/config'
 import { generatePreviewPath } from '@/utilities/generatePreviewPath'
 import { CollectionOverride } from '@payloadcms/plugin-ecommerce/types'
 import {
@@ -57,7 +54,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
   ...defaultCollection,
   admin: {
     ...defaultCollection?.admin,
-    defaultColumns: ['title', 'enableVariants', '_status', 'variants.variants'],
+    defaultColumns: ['title', 'priceInGBP', '_status'],
     livePreview: {
       url: ({ data, req }) =>
         generatePreviewPath({
@@ -92,6 +89,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
       type: 'tabs',
       tabs: [
         {
+          label: 'Content',
           fields: [
             {
               name: 'description',
@@ -100,19 +98,19 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
                 features: ({ rootFeatures }) => {
                   return [
                     ...rootFeatures,
-                    HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4'] }),
+                    HeadingFeature({ enabledHeadingSizes: ['h2', 'h3', 'h4'] }),
                     FixedToolbarFeature(),
                     InlineToolbarFeature(),
                     HorizontalRuleFeature(),
                   ]
                 },
               }),
-              label: false,
-              required: false,
+              label: 'Description',
             },
             {
               name: 'gallery',
               type: 'array',
+              label: 'Product Images',
               minRows: 1,
               fields: [
                 {
@@ -129,6 +127,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
                     condition: (data) => {
                       return data?.enableVariants === true && data?.variantTypes?.length > 0
                     },
+                    description: 'Link this image to a specific variant (optional)',
                   },
                   filterOptions: ({ data }) => {
                     if (data?.enableVariants && data?.variantTypes?.length) {
@@ -164,21 +163,20 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
                 },
               ],
             },
-
-            {
-              name: 'layout',
-              type: 'blocks',
-              blocks: [CallToAction, Content, MediaBlock],
-            },
           ],
-          label: 'Content',
         },
         {
+          label: 'Product Details',
           fields: [
+            // Include default fields from ecommerce plugin (price, inventory, variants, etc.)
             ...defaultCollection.fields,
             {
               name: 'relatedProducts',
               type: 'relationship',
+              label: 'Related Products',
+              admin: {
+                description: 'Products to show as recommendations',
+              },
               filterOptions: ({ id }) => {
                 if (id) {
                   return {
@@ -187,8 +185,6 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
                     },
                   }
                 }
-
-                // ID comes back as undefined during seeding so we need to handle that case
                 return {
                   id: {
                     exists: true,
@@ -199,7 +195,6 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
               relationTo: 'products',
             },
           ],
-          label: 'Product Details',
         },
         {
           name: 'meta',
@@ -216,13 +211,9 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
             MetaImageField({
               relationTo: 'media',
             }),
-
             MetaDescriptionField({}),
             PreviewField({
-              // if the `generateUrl` function is configured
               hasGenerateFn: true,
-
-              // field paths to match the target field for data
               titlePath: 'meta.title',
               descriptionPath: 'meta.description',
             }),
@@ -246,7 +237,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
     ...defaultCollection.hooks,
     beforeValidate: [
       skipStripeSyncIfMissingFields,
-      addStripeImage, // Extract first gallery image for Stripe sync
+      addStripeImage,
       ...normalizeHooks(defaultCollection.hooks?.beforeValidate),
     ],
     beforeChange: [

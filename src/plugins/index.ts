@@ -8,6 +8,7 @@ import { Plugin } from 'payload'
 
 import { stripeAdapter } from '@payloadcms/plugin-ecommerce/payments/stripe'
 
+import { storeConfig } from '@/config/store'
 import { adminOnly } from '@/access/adminOnly'
 import { adminOnlyFieldAccess } from '@/access/adminOnlyFieldAccess'
 import { adminOrCustomerOwnerOrGuest } from '@/access/adminOrCustomerOwnerOrGuest'
@@ -78,15 +79,8 @@ export const plugins: Plugin[] = [
       customerOnlyFieldAccess,
     },
     currencies: {
-      defaultCurrency: 'GBP',
-      supportedCurrencies: [
-        {
-          code: 'GBP',
-          symbol: '£',
-          decimals: 2,
-          label: 'British Pound',
-        },
-      ],
+      defaultCurrency: storeConfig.currency.code,
+      supportedCurrencies: [storeConfig.currency],
     },
     customers: {
       slug: 'users',

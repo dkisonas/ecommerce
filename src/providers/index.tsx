@@ -1,4 +1,5 @@
 import { AuthProvider } from '@/providers/Auth'
+import { storeConfig } from '@/config/store'
 import { EcommerceProvider } from '@payloadcms/plugin-ecommerce/client/react'
 import { stripeAdapterClient } from '@payloadcms/plugin-ecommerce/payments/stripe'
 import React from 'react'
@@ -18,15 +19,8 @@ export const Providers: React.FC<{
           <EcommerceProvider
             enableVariants={true}
             currenciesConfig={{
-              defaultCurrency: 'GBP',
-              supportedCurrencies: [
-                {
-                  code: 'GBP',
-                  symbol: '£',
-                  decimals: 2,
-                  label: 'British Pound',
-                },
-              ],
+              defaultCurrency: storeConfig.currency.code,
+              supportedCurrencies: [storeConfig.currency],
             }}
             api={{
               cartsFetchQuery: {

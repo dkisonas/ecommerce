@@ -1,6 +1,5 @@
 import type { Media, Product } from '@/payload-types'
 
-import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { GridTileImage } from '@/components/Grid/tile'
 import { Gallery } from '@/components/product/Gallery'
 import { ProductDescription } from '@/components/product/ProductDescription'
@@ -141,8 +140,6 @@ export default async function ProductPage({ params }: Args) {
         </div>
       </div>
 
-      {product.layout?.length ? <RenderBlocks blocks={product.layout} /> : <></>}
-
       {relatedProducts.length ? (
         <div className="container">
           <RelatedProducts products={relatedProducts as Product[]} />
@@ -172,7 +169,9 @@ function RelatedProducts({ products }: { products: Product[] }) {
                   amount: product.priceInGBP!,
                   title: product.title,
                 }}
-                media={product.meta?.image as Media}
+                media={
+                  (product.gallery?.[0]?.image as Media) || (product.meta?.image as Media)
+                }
               />
             </Link>
           </li>

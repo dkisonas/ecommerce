@@ -1,16 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
-import { Banner } from '@/blocks/Banner/config'
-import { Carousel } from '@/blocks/Carousel/config'
-import { ThreeItemGrid } from '@/blocks/ThreeItemGrid/config'
 import { generatePreviewPath } from '@/utilities/generatePreviewPath'
 import { adminOnly } from '@/access/adminOnly'
-import { Archive } from '@/blocks/ArchiveBlock/config'
-import { CallToAction } from '@/blocks/CallToAction/config'
-import { Content } from '@/blocks/Content/config'
-import { FormBlock } from '@/blocks/Form/config'
-import { MediaBlock } from '@/blocks/MediaBlock/config'
-import { hero } from '@/fields/hero'
 import { slugField } from 'payload'
 import { adminOrPublishedStatus } from '@/access/adminOrPublishedStatus'
 import {
@@ -20,7 +11,16 @@ import {
   OverviewField,
   PreviewField,
 } from '@payloadcms/plugin-seo/fields'
+import {
+  BlocksFeature,
+  FixedToolbarFeature,
+  HeadingFeature,
+  HorizontalRuleFeature,
+  InlineToolbarFeature,
+  lexicalEditor,
+} from '@payloadcms/richtext-lexical'
 import { revalidatePage, revalidateDelete } from './hooks/revalidatePage'
+import { FormBlock } from '@/blocks/Form/config'
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -79,28 +79,28 @@ export const Pages: CollectionConfig = {
       type: 'tabs',
       tabs: [
         {
-          fields: [hero],
-          label: 'Hero',
-        },
-        {
+          label: 'Content',
           fields: [
             {
-              name: 'layout',
-              type: 'blocks',
-              blocks: [
-                CallToAction,
-                Content,
-                MediaBlock,
-                Archive,
-                Carousel,
-                ThreeItemGrid,
-                Banner,
-                FormBlock,
-              ],
-              required: true,
+              name: 'content',
+              type: 'richText',
+              editor: lexicalEditor({
+                features: ({ rootFeatures }) => {
+                  return [
+                    ...rootFeatures,
+                    HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4'] }),
+                    FixedToolbarFeature(),
+                    InlineToolbarFeature(),
+                    HorizontalRuleFeature(),
+                    BlocksFeature({
+                      blocks: [FormBlock],
+                    }),
+                  ]
+                },
+              }),
+              label: false,
             },
           ],
-          label: 'Content',
         },
         {
           name: 'meta',
@@ -120,10 +120,7 @@ export const Pages: CollectionConfig = {
 
             MetaDescriptionField({}),
             PreviewField({
-              // if the `generateUrl` function is configured
               hasGenerateFn: true,
-
-              // field paths to match the target field for data
               titlePath: 'meta.title',
               descriptionPath: 'meta.description',
             }),

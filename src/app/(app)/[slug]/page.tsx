@@ -1,15 +1,13 @@
 import type { Metadata } from 'next'
 
-import { RenderBlocks } from '@/blocks/RenderBlocks'
-import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { draftMode } from 'next/headers'
 import React from 'react'
-
-import type { Page } from '@/payload-types'
 import { notFound } from 'next/navigation'
+import { ProductGrid } from '@/components/ProductGrid'
+import { RichText } from '@/components/RichText'
 
 export async function generateStaticParams() {
   const payload = await getPayload({ config: configPromise })
@@ -52,12 +50,24 @@ export default async function Page({ params }: Args) {
     return notFound()
   }
 
-  const { hero, layout } = page
+  const isHomePage = slug === 'home'
 
   return (
     <article className="pt-16 pb-24">
-      <RenderHero {...hero} />
-      <RenderBlocks blocks={layout} />
+      {/* Page title */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">{page.title}</h1>
+      </div>
+
+      {/* Rich text content if any */}
+      {page.content && (
+        <div className="mb-12">
+          <RichText data={page.content} enableGutter={false} />
+        </div>
+      )}
+
+      {/* Show products on homepage */}
+      {isHomePage && <ProductGrid />}
     </article>
   )
 }

@@ -117,6 +117,7 @@ export default buildConfig({
     } else {
       payload.logger.warn('⚠️ STRIPE_SECRET_KEY not set - Stripe sync will not work')
     }
+
   },
   // Sharp is now an optional dependency -
   // if you want to resize images, crop, set focal point, etc.
