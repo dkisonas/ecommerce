@@ -22,10 +22,6 @@
     border-color: var(--color-gray-200, currentColor);
   }
 
-  /* Position Header below AdminBar when AdminBar is visible */
-  body[data-admin-bar='visible'] .header-nav {
-    top: 2.5rem;
-  }
 }
 
 @theme {

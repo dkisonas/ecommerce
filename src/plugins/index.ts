@@ -20,6 +20,7 @@ import { ProductsCollection } from '@/collections/Products'
 import { TransactionsCollection } from '@/collections/Transactions'
 import { Page, Product } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
+import { sendFormSubmissionEmail } from '@/hooks/sendFormSubmissionEmail'
 
 const generateTitle: GenerateTitle<Product | Page> = ({ doc }) => {
   return doc?.title ? `${doc.title} | Payload Ecommerce Template` : 'Payload Ecommerce Template'
@@ -43,6 +44,9 @@ export const plugins: Plugin[] = [
     formSubmissionOverrides: {
       admin: {
         group: 'Content',
+      },
+      hooks: {
+        afterChange: [sendFormSubmissionEmail],
       },
     },
     formOverrides: {
@@ -114,16 +118,20 @@ export const plugins: Plugin[] = [
             ? [ordersCollectionHooks.afterChange]
             : []
 
-        // Override status field to include 'partially_refunded'
+        // Override status field to include custom refund statuses
         // Override transactions field label to 'Transaction ID'
         const defaultFields = defaultCollection.fields || []
         const updatedFields = defaultFields.map((field: any) => {
           if (field.name === 'status' && field.type === 'select') {
-            // Add 'partially_refunded' option to status field
+            // Add custom status options
             return {
               ...field,
               options: [
                 ...(field.options || []),
+                {
+                  label: 'Refund Requested',
+                  value: 'refund_requested',
+                },
                 {
                   label: 'Partially Refunded',
                   value: 'partially_refunded',

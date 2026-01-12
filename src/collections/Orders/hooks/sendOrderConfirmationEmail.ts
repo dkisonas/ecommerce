@@ -5,10 +5,17 @@ import type { Order } from '@/payload-types'
 export const sendOrderConfirmationEmail: CollectionAfterChangeHook<Order> = async ({
   doc,
   previousDoc,
-  req: { payload },
+  req,
   operation,
 }) => {
+  const { payload, context } = req
   payload.logger.info(`Order hook triggered: operation=${operation}, orderID=${doc.id}, previousDoc=${previousDoc ? `exists (id: ${previousDoc.id})` : 'null'}`)
+
+  // Skip email sending during seeding
+  if (context?.skipValidation) {
+    payload.logger.info(`Skipping email - seeding mode`)
+    return doc
+  }
 
   // Only send email when order is first created (not on updates)
   // Trust the operation parameter - if it says 'create', send the email

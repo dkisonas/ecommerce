@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 
 import type { Header } from 'src/payload-types'
+import { AccountMenu } from './AccountMenu'
 import { MobileMenu } from './MobileMenu'
 
 import { LogoIcon } from '@/components/icons/logo'
@@ -21,7 +22,7 @@ export function HeaderClient({ header }: Props) {
   const pathname = usePathname()
 
   return (
-    <div className="fixed md:relative top-0 left-0 right-0 z-20 border-b bg-primary text-primary-foreground header-nav">
+    <div className="border-b bg-primary text-primary-foreground header-nav">
       <nav className="flex items-center md:items-end justify-between container pt-2">
         <div className="block flex-none md:hidden">
           <Suspense fallback={null}>
@@ -54,7 +55,10 @@ export function HeaderClient({ header }: Props) {
             ) : null}
           </div>
 
-          <div className="flex justify-end md:w-1/3 gap-4">
+          <div className="flex justify-end md:w-1/3 gap-2">
+            <div className="hidden md:block">
+              <AccountMenu />
+            </div>
             <Suspense fallback={<OpenCartButton />}>
               <Cart />
             </Suspense>

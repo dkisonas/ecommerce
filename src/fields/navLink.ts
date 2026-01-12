@@ -4,10 +4,9 @@ import type { Field } from 'payload'
  * Navigation link field - provides a user-friendly way to create navigation links
  *
  * Options:
- * - System Page: Home, Products (built-in routes)
- * - Category: Links to product categories
- * - Page: Links to CMS-managed pages
- * - Custom URL: External or custom links
+ * - Category: Links to product categories (/products?category={slug})
+ * - Page: Links to CMS-managed pages (/{slug})
+ * - Custom URL: External or any custom path
  */
 export const navLink: Field = {
   name: 'link',
@@ -25,9 +24,8 @@ export const navLink: Field = {
           admin: {
             width: '50%',
           },
-          defaultValue: 'system',
+          defaultValue: 'custom',
           options: [
-            { label: 'System Page', value: 'system' },
             { label: 'Category', value: 'category' },
             { label: 'Page', value: 'page' },
             { label: 'Custom URL', value: 'custom' },
@@ -50,20 +48,6 @@ export const navLink: Field = {
     {
       type: 'row',
       fields: [
-        // System pages (Home, Products)
-        {
-          name: 'systemPage',
-          type: 'select',
-          admin: {
-            width: '50%',
-            condition: (_, siblingData) => siblingData?.type === 'system',
-          },
-          options: [
-            { label: 'Home', value: '/' },
-            { label: 'Products', value: '/products' },
-          ],
-          required: true,
-        },
         // Category reference
         {
           name: 'category',

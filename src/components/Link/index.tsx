@@ -16,9 +16,8 @@ type CMSLinkType = {
     relationTo: 'pages' | 'posts'
     value: Page | Product | string | number
   } | null
-  // New navigation link types
-  type?: 'custom' | 'reference' | 'system' | 'category' | 'page' | null
-  systemPage?: '/' | '/products' | null
+  // Navigation link types
+  type?: 'custom' | 'reference' | 'category' | 'page' | null
   category?: number | Category | null
   page?: number | Page | null
   url?: string | null
@@ -26,12 +25,9 @@ type CMSLinkType = {
 }
 
 function resolveHref(props: CMSLinkType): string | null {
-  const { type, systemPage, category, page, reference, url } = props
+  const { type, category, page, reference, url } = props
 
   switch (type) {
-    case 'system':
-      return systemPage || null
-
     case 'category':
       if (typeof category === 'object' && category?.slug) {
         return `/products?category=${category.slug}`

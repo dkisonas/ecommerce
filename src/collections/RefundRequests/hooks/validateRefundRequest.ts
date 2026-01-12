@@ -15,6 +15,11 @@ export const validateRefundRequest: CollectionBeforeChangeHook<RefundRequest> = 
     return data
   }
 
+  // Skip validation for seeding
+  if (req.context?.skipValidation) {
+    return data
+  }
+
   // Fetch order
   if (!data.order) {
     throw new Error('Order is required')

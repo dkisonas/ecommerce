@@ -25,6 +25,7 @@ import { Refunds } from '@/collections/Refunds'
 import { Users } from '@/collections/Users'
 import { Footer } from '@/globals/Footer'
 import { Header } from '@/globals/Header'
+import { Settings } from '@/globals/Settings'
 import { plugins } from './plugins'
 
 const filename = fileURLToPath(import.meta.url)
@@ -89,7 +90,7 @@ export default buildConfig({
     apiKey: process.env.RESEND_API_KEY || '',
   }),
   endpoints: [],
-  globals: [Header, Footer],
+  globals: [Header, Footer, Settings],
   plugins: [
     ...plugins,
     // storage-adapter-placeholder

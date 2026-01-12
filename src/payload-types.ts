@@ -10,7 +10,9 @@
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "OrderStatus".
  */
-export type OrderStatus = ('processing' | 'completed' | 'cancelled' | 'refunded' | 'partially_refunded') | null;
+export type OrderStatus =
+  | ('processing' | 'completed' | 'cancelled' | 'refunded' | 'refund_requested' | 'partially_refunded')
+  | null;
 /**
  * Supported timezones in IANA format.
  *
@@ -134,10 +136,12 @@ export interface Config {
   globals: {
     header: Header;
     footer: Footer;
+    settings: Setting;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
+    settings: SettingsSelect<false> | SettingsSelect<true>;
   };
   locale: null;
   user: User & {
@@ -1654,9 +1658,8 @@ export interface Header {
   navItems?:
     | {
         link: {
-          type: 'system' | 'category' | 'page' | 'custom';
+          type: 'category' | 'page' | 'custom';
           newTab?: boolean | null;
-          systemPage?: ('/' | '/products') | null;
           category?: (number | null) | Category;
           page?: (number | null) | Page;
           url?: string | null;
@@ -1677,9 +1680,8 @@ export interface Footer {
   navItems?:
     | {
         link: {
-          type: 'system' | 'category' | 'page' | 'custom';
+          type: 'category' | 'page' | 'custom';
           newTab?: boolean | null;
-          systemPage?: ('/' | '/products') | null;
           category?: (number | null) | Category;
           page?: (number | null) | Page;
           url?: string | null;
@@ -1688,6 +1690,19 @@ export interface Footer {
         id?: string | null;
       }[]
     | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "settings".
+ */
+export interface Setting {
+  id: number;
+  /**
+   * Email address where form submissions will be sent. Leave empty to disable email notifications.
+   */
+  formSubmissionEmail?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1704,7 +1719,6 @@ export interface HeaderSelect<T extends boolean = true> {
           | {
               type?: T;
               newTab?: T;
-              systemPage?: T;
               category?: T;
               page?: T;
               url?: T;
@@ -1729,7 +1743,6 @@ export interface FooterSelect<T extends boolean = true> {
           | {
               type?: T;
               newTab?: T;
-              systemPage?: T;
               category?: T;
               page?: T;
               url?: T;
@@ -1737,6 +1750,16 @@ export interface FooterSelect<T extends boolean = true> {
             };
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "settings_select".
+ */
+export interface SettingsSelect<T extends boolean = true> {
+  formSubmissionEmail?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

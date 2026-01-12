@@ -1,5 +1,5 @@
 import type { Payload } from 'payload'
-import type { Category } from '@/payload-types'
+import type { Category, Product } from '@/payload-types'
 
 /**
  * Seed script - clears demo content and recreates it
@@ -20,22 +20,86 @@ export async function seed(payload: Payload): Promise<void> {
   const mediaIds = await uploadImages(payload)
   console.log(`✅ Uploaded ${Object.keys(mediaIds).length} images`)
 
-  await createProducts(payload, categories, mediaIds)
-  console.log('✅ Created 5 products')
+  const products = await createProducts(payload, categories, mediaIds)
+  console.log(`✅ Created ${products.length} products`)
 
   await createNavigation(payload)
   console.log('✅ Created navigation')
 
+  // Create admin account
+  await createAdminAccount(payload)
+  console.log('✅ Created admin account (admin@example.com / admin1234)')
+
+  // Create demo customer and orders
+  const demoCustomer = await createDemoCustomer(payload)
+  console.log('✅ Created demo customer (demo@example.com / demo1234)')
+
+  await createDemoOrders(payload, demoCustomer.id, products)
+  console.log('✅ Created demo orders with various statuses')
+
   console.log('🎉 Seed complete!')
 }
 
-// Demo product slugs for cleanup
+// Demo data identifiers for cleanup
 const DEMO_SLUGS = {
   products: ['classic-t-shirt', 'leather-wallet', 'ceramic-mug', 'canvas-tote-bag', 'scented-candle'],
   categories: ['clothing', 'accessories', 'home-and-living'],
 }
 
+const DEMO_CUSTOMER_EMAIL = 'demo@example.com'
+const DEMO_ADMIN_EMAIL = 'admin@example.com'
+
 async function clearDemoContent(payload: Payload) {
+  // Delete demo refunds first (has foreign key to orders)
+  try {
+    await payload.delete({
+      collection: 'refunds',
+      where: {
+        or: [
+          { 'order.customerEmail': { equals: DEMO_CUSTOMER_EMAIL } },
+        ],
+      },
+    })
+  } catch {
+    // Ignore errors
+  }
+
+  // Delete demo transactions
+  try {
+    await payload.delete({
+      collection: 'transactions',
+      where: {
+        customerEmail: { equals: DEMO_CUSTOMER_EMAIL },
+      },
+    })
+  } catch {
+    // Ignore errors
+  }
+
+  // Delete demo refund requests
+  try {
+    await payload.delete({
+      collection: 'refund-requests',
+      where: {
+        customerEmail: { equals: DEMO_CUSTOMER_EMAIL },
+      },
+    })
+  } catch {
+    // Ignore errors
+  }
+
+  // Delete demo orders
+  try {
+    await payload.delete({
+      collection: 'orders',
+      where: {
+        customerEmail: { equals: DEMO_CUSTOMER_EMAIL },
+      },
+    })
+  } catch {
+    // Ignore errors
+  }
+
   // Delete demo products - wrap in try/catch to handle Stripe hook errors
   try {
     await payload.delete({
@@ -67,6 +131,18 @@ async function clearDemoContent(payload: Payload) {
       collection: 'categories',
       where: {
         slug: { in: DEMO_SLUGS.categories },
+      },
+    })
+  } catch {
+    // Ignore errors
+  }
+
+  // Delete demo customer
+  try {
+    await payload.delete({
+      collection: 'users',
+      where: {
+        email: { equals: DEMO_CUSTOMER_EMAIL },
       },
     })
   } catch {
@@ -138,12 +214,12 @@ async function createProducts(
   payload: Payload,
   categories: Category[],
   mediaIds: Record<string, number>,
-) {
+): Promise<Product[]> {
   const clothing = categories.find((c) => c.slug === 'clothing')
   const accessories = categories.find((c) => c.slug === 'accessories')
   const homeLiving = categories.find((c) => c.slug === 'home-and-living')
 
-  const products = [
+  const productsData = [
     {
       title: 'Classic T-Shirt',
       slug: 'classic-t-shirt',
@@ -186,10 +262,12 @@ async function createProducts(
     },
   ]
 
-  for (const p of products) {
+  const createdProducts: Product[] = []
+
+  for (const p of productsData) {
     const gallery = mediaIds[p.imageKey] ? [{ image: mediaIds[p.imageKey] }] : []
 
-    await payload.create({
+    const product = await payload.create({
       collection: 'products',
       data: {
         title: p.title,
@@ -203,16 +281,31 @@ async function createProducts(
         _status: 'published',
       },
     })
+    createdProducts.push(product)
   }
+
+  return createdProducts
 }
 
 async function createNavigation(payload: Payload) {
+  // Get category IDs for navigation links
+  const categories = await payload.find({
+    collection: 'categories',
+    where: {
+      slug: { in: DEMO_SLUGS.categories },
+    },
+  })
+
+  const categoryNavItems = categories.docs.map((cat) => ({
+    link: { type: 'category' as const, category: cat.id, label: cat.title },
+  }))
+
   await payload.updateGlobal({
     slug: 'header',
     data: {
       navItems: [
-        { link: { type: 'system', systemPage: '/', label: 'Home' } },
-        { link: { type: 'system', systemPage: '/products', label: 'Products' } },
+        { link: { type: 'custom' as const, url: '/products', label: 'Products' } },
+        ...categoryNavItems,
       ],
     },
   })
@@ -221,8 +314,213 @@ async function createNavigation(payload: Payload) {
     slug: 'footer',
     data: {
       navItems: [
-        { link: { type: 'system', systemPage: '/products', label: 'Products' } },
+        { link: { type: 'custom' as const, url: '/products', label: 'Products' } },
       ],
     },
   })
+}
+
+async function createAdminAccount(payload: Payload) {
+  // Check if admin already exists
+  const existing = await payload.find({
+    collection: 'users',
+    where: { email: { equals: DEMO_ADMIN_EMAIL } },
+  })
+
+  if (existing.docs.length > 0) {
+    return existing.docs[0]
+  }
+
+  return await payload.create({
+    collection: 'users',
+    data: {
+      email: DEMO_ADMIN_EMAIL,
+      password: 'admin1234',
+      firstName: 'Admin',
+      lastName: 'User',
+      roles: ['admin'],
+    },
+  })
+}
+
+async function createDemoCustomer(payload: Payload) {
+  // Check if demo customer already exists
+  const existing = await payload.find({
+    collection: 'users',
+    where: { email: { equals: DEMO_CUSTOMER_EMAIL } },
+  })
+
+  if (existing.docs.length > 0) {
+    return existing.docs[0]
+  }
+
+  return await payload.create({
+    collection: 'users',
+    data: {
+      email: DEMO_CUSTOMER_EMAIL,
+      password: 'demo1234',
+      firstName: 'Demo',
+      lastName: 'Customer',
+      roles: ['customer'],
+    },
+  })
+}
+
+async function createDemoOrders(payload: Payload, customerId: number, products: Product[]) {
+  const tshirt = products.find((p) => p.slug === 'classic-t-shirt')
+  const wallet = products.find((p) => p.slug === 'leather-wallet')
+  const mug = products.find((p) => p.slug === 'ceramic-mug')
+  const tote = products.find((p) => p.slug === 'canvas-tote-bag')
+  const candle = products.find((p) => p.slug === 'scented-candle')
+
+  const demoAddress = {
+    firstName: 'Demo',
+    lastName: 'Customer',
+    addressLine1: '123 Demo Street',
+    city: 'London',
+    postcode: 'SW1A 1AA',
+    country: 'GB',
+  }
+
+  // 1. Completed order (successful purchase)
+  const completedOrder = await payload.create({
+    collection: 'orders',
+    context: { skipValidation: true },
+    data: {
+      customer: customerId,
+      customerEmail: DEMO_CUSTOMER_EMAIL,
+      status: 'completed',
+      amount: 4000, // £40.00
+      currency: 'GBP',
+      items: [
+        { product: tshirt?.id, quantity: 1, price: 2500 },
+        { product: mug?.id, quantity: 1, price: 1500 },
+      ],
+      shippingAddress: demoAddress,
+      billingAddress: demoAddress,
+    },
+  })
+  console.log(`  📦 Created completed order #${completedOrder.id}`)
+
+  // 2. Processing order (payment received, being prepared)
+  const processingOrder = await payload.create({
+    collection: 'orders',
+    context: { skipValidation: true },
+    data: {
+      customer: customerId,
+      customerEmail: DEMO_CUSTOMER_EMAIL,
+      status: 'processing',
+      amount: 4500, // £45.00
+      currency: 'GBP',
+      items: [{ product: wallet?.id, quantity: 1, price: 4500 }],
+      shippingAddress: demoAddress,
+      billingAddress: demoAddress,
+    },
+  })
+  console.log(`  📦 Created processing order #${processingOrder.id}`)
+
+  // 3. Order with pending refund request
+  const pendingRefundOrder = await payload.create({
+    collection: 'orders',
+    context: { skipValidation: true },
+    data: {
+      customer: customerId,
+      customerEmail: DEMO_CUSTOMER_EMAIL,
+      status: 'refund_requested',
+      amount: 3000, // £30.00
+      currency: 'GBP',
+      items: [{ product: tote?.id, quantity: 1, price: 3000 }],
+      shippingAddress: demoAddress,
+      billingAddress: demoAddress,
+    },
+  })
+
+  await payload.create({
+    collection: 'refund-requests',
+    context: { skipValidation: true },
+    data: {
+      order: pendingRefundOrder.id,
+      customer: customerId,
+      customerEmail: DEMO_CUSTOMER_EMAIL,
+      type: 'full',
+      amount: 3000,
+      currency: 'GBP',
+      reason: 'The bag arrived damaged. I would like a full refund please.',
+      status: 'pending',
+    },
+  })
+  console.log(`  📦 Created order #${pendingRefundOrder.id} with pending refund request`)
+
+  // 4. Order with rejected refund request
+  const rejectedRefundOrder = await payload.create({
+    collection: 'orders',
+    context: { skipValidation: true },
+    data: {
+      customer: customerId,
+      customerEmail: DEMO_CUSTOMER_EMAIL,
+      status: 'completed',
+      amount: 2000, // £20.00
+      currency: 'GBP',
+      items: [{ product: candle?.id, quantity: 1, price: 2000 }],
+      shippingAddress: demoAddress,
+      billingAddress: demoAddress,
+    },
+  })
+
+  await payload.create({
+    collection: 'refund-requests',
+    context: { skipValidation: true },
+    data: {
+      order: rejectedRefundOrder.id,
+      customer: customerId,
+      customerEmail: DEMO_CUSTOMER_EMAIL,
+      type: 'full',
+      amount: 2000,
+      currency: 'GBP',
+      reason: 'I changed my mind about the candle.',
+      status: 'rejected',
+      rejectionReason: 'Refund request denied - item was used. Please see our refund policy.',
+      rejectedAt: new Date().toISOString(),
+    },
+  })
+  console.log(`  📦 Created order #${rejectedRefundOrder.id} with rejected refund request`)
+
+  // 5. Refunded order (status set directly, simulates completed refund)
+  const refundedOrder = await payload.create({
+    collection: 'orders',
+    context: { skipValidation: true },
+    data: {
+      customer: customerId,
+      customerEmail: DEMO_CUSTOMER_EMAIL,
+      status: 'refunded',
+      amount: 2500, // £25.00
+      currency: 'GBP',
+      totalRefunded: 2500,
+      items: [{ product: tshirt?.id, quantity: 1, price: 2500 }],
+      shippingAddress: demoAddress,
+      billingAddress: demoAddress,
+    },
+  })
+  console.log(`  📦 Created refunded order #${refundedOrder.id}`)
+
+  // 6. Partially refunded order
+  const partialRefundOrder = await payload.create({
+    collection: 'orders',
+    context: { skipValidation: true },
+    data: {
+      customer: customerId,
+      customerEmail: DEMO_CUSTOMER_EMAIL,
+      status: 'partially_refunded',
+      amount: 5500, // £55.00 (£25 tshirt + £30 tote)
+      currency: 'GBP',
+      totalRefunded: 2500, // Only tshirt refunded
+      items: [
+        { product: tshirt?.id, quantity: 1, price: 2500 },
+        { product: tote?.id, quantity: 1, price: 3000 },
+      ],
+      shippingAddress: demoAddress,
+      billingAddress: demoAddress,
+    },
+  })
+  console.log(`  📦 Created partially refunded order #${partialRefundOrder.id}`)
 }

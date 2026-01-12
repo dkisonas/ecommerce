@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { headers as getHeaders } from 'next/headers.js'
 import configPromise from '@payload-config'
 import { AccountForm } from '@/components/forms/AccountForm'
+import { AddressListing } from '@/components/addresses/AddressListing'
+import { CreateAddressModal } from '@/components/addresses/CreateAddressModal'
 import { Order } from '@/payload-types'
 import { OrderItem } from '@/components/OrderItem'
 import { getPayload } from 'payload'
@@ -48,12 +50,20 @@ export default async function AccountPage() {
 
   return (
     <>
-      <div className="border p-8 rounded-lg bg-primary-foreground">
-        <h1 className="text-3xl font-medium mb-8">Account settings</h1>
+      <div className="border p-8 rounded-lg bg-card">
+        <h1 className="text-3xl font-medium mb-8">My Account</h1>
         <AccountForm />
       </div>
 
-      <div className=" border p-8 rounded-lg bg-primary-foreground">
+      <div className="border p-8 rounded-lg bg-card">
+        <h2 className="text-3xl font-medium mb-8">Addresses</h2>
+        <div className="mb-6">
+          <AddressListing />
+        </div>
+        <CreateAddressModal />
+      </div>
+
+      <div className="border p-8 rounded-lg bg-card">
         <h2 className="text-3xl font-medium mb-8">Recent Orders</h2>
 
         <div className="prose dark:prose-invert mb-8">

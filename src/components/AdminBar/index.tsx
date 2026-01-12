@@ -35,7 +35,7 @@ export const AdminBar: React.FC<{
     collectionKey && collectionLabels[collectionKey] ? collectionKey : 'pages'
 
   return (
-    <div className="relative left-0 right-0 z-30 py-2 bg-black text-white">
+    <div className="relative z-50 py-2 bg-black text-white">
       <div className="container">
         <PayloadAdminBar
           {...adminBarProps}

@@ -14,6 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pnpm install                # Install dependencies
 pnpm approve-builds         # Approve build scripts (esbuild, git-hooks, etc.)
 cp .env.example .env        # Copy and configure environment variables
+pnpm seed                   # Create demo content (admin, customer, products, orders)
 pnpm dev                    # Start dev server
 ```
 
@@ -46,11 +47,12 @@ This is a **Payload CMS 3.x** ecommerce application using **Next.js 15 App Route
 ### Key Directories
 
 - `src/collections/` - Payload collection definitions (database models)
-- `src/globals/` - Site-wide configuration (Header, Footer)
+- `src/globals/` - Site-wide configuration (Header, Footer, Settings)
 - `src/blocks/` - Rich text embeddable blocks (Form only)
 - `src/access/` - Access control functions
 - `src/config/` - Centralized configuration (store settings, currency)
-- `src/seed/` - Auto-seed script for default content
+- `src/seed/` - Seed script for demo content
+- `src/hooks/` - Shared hooks (e.g., sendFormSubmissionEmail)
 - `src/app/(app)/` - Customer-facing routes
 - `src/app/(payload)/admin/` - Admin panel routes
 - `src/components/` - React components
@@ -62,14 +64,17 @@ The codebase extends Payload's `@payloadcms/plugin-ecommerce` and `@payloadcms/p
 
 ### Seed Script
 
-Run `pnpm seed` to create demo content:
-- Header navigation (Home, Products links)
-- Footer navigation
-- Demo categories (Clothing, Accessories, Home & Living)
+Run `pnpm seed` to create complete demo content:
+- **Admin account**: admin@example.com / admin1234
+- **Demo customer**: demo@example.com / demo1234
+- **Categories**: Clothing, Accessories, Home & Living
+- **Products**: 5 products with placeholder images from picsum.photos
+- **Orders**: 6 demo orders with various statuses (completed, processing, refund_requested, refunded, partially_refunded)
+- **Navigation**: Header and footer links configured
 
 ### Simplified Content Model
 
-- **Pages**: Title + Rich Text content (with embeddable Form blocks) + SEO - for static pages like About, Contact
+- **Pages**: Title + Rich Text content (with embeddable Form blocks) + SEO
 - **Products**: Title + Description + Gallery + Price/Inventory + Categories + SEO
 - **Homepage** (`/`): Static page showing products - no database entry needed
 - **Products page** (`/products`): Lists all products with search and category filters
@@ -95,6 +100,24 @@ export const storeConfig = {
   },
 }
 ```
+
+### Navigation Link Types (navLink field)
+
+The navigation system uses 3 link types:
+- **Category** - Links to `/products?category={slug}`
+- **Page** - Links to CMS pages `/{slug}`
+- **Custom URL** - Any URL (internal or external)
+
+### Order Statuses
+
+Orders can have these statuses:
+- `pending` - Awaiting payment
+- `processing` - Payment received, being prepared
+- `completed` - Order fulfilled
+- `refund_requested` - Customer requested refund (pending review)
+- `refunded` - Fully refunded
+- `partially_refunded` - Partially refunded
+- `cancelled` - Order cancelled
 
 ### Access Control Hierarchy
 
@@ -128,65 +151,67 @@ Optional:
 - `SITE_NAME`, `COMPANY_NAME` - Used in footer/metadata
 - `PREVIEW_SECRET` - For draft preview functionality
 
-## Recent Simplification Work (January 2026)
+## Documentation
 
-### Completed
+- `docs/FORMS.md` - How to create and use forms
+- `docs/ECOMMERCE.md` - Ecommerce system overview (orders, refunds, etc.)
+- `docs/ROUTES.md` - All frontend and API routes
+- `docs/ADMIN-GUIDE.md` - Quick reference for admin tasks
+- `docs/SETUP.md` - Detailed setup guide
 
-1. **Seed script** - Run `pnpm seed` to create demo content (`src/seed/index.ts`)
-2. **Simplified Pages collection** - Removed complex layout builder and hero, now uses simple rich text with FormBlock support
-3. **Simplified Products collection** - Removed layout blocks, kept variants and SEO
-4. **Homepage shows products** - `src/app/(app)/[slug]/page.tsx` displays ProductGrid on home page
-5. **Centralized config** - Currency in `src/config/store.ts`, imported by plugins and providers
-6. **Actionable onboarding** - BeforeDashboard shows quick links to create products
-7. **Cleaned up blocks** - Removed ArchiveBlock, Carousel, ThreeItemGrid, Content, RenderBlocks.tsx
-8. **Documentation** - Created `FEATURES.md` and `docs/SETUP.md`
+## Project Status (January 2026)
 
-### Remaining Issues
+### Completed Simplification Work
 
-**Build fails on pre-existing lint warnings** (not from simplification work):
-- Unused variables in: account pages, refund APIs, auth provider, form components
-- `any` types in: refund APIs, plugins, form components
-- React hooks warnings in: StockIndicator, useIgnoredEffect
+All simplification phases are complete. The template is now easy to use for casual users:
 
-To fix, run `pnpm lint:fix` or manually address warnings in:
-- `src/app/(app)/(account)/` - unused `error` catches, `index` params
-- `src/app/(app)/api/refund*/` - `any` types
-- `src/blocks/Form/` - unused imports, `any` types
-- `src/providers/Auth/` - unused eslint directives, `error` catches
-- `src/components/refunds/` - unused imports
+1. **Seed Script** - `pnpm seed` creates complete demo store
+2. **Simplified Navigation** - 3 link types (Category, Page, Custom URL)
+3. **Simplified Pages** - Rich text + FormBlock only
+4. **Simplified Products** - Clean tabs layout
+5. **Centralized Config** - Currency in `src/config/store.ts`
+6. **Forms UX** - Settings global + email notifications on submission
+7. **Documentation** - Complete docs for forms, ecommerce, routes, admin
+8. **Header UX** - Account dropdown menu, simplified layout
+9. **Order Statuses** - Added `refund_requested` status
 
-### Files Changed in Simplification
+### Key Files Added/Modified
 
-| File | Change |
-|------|--------|
-| `src/seed/index.ts` | NEW - Seed script (run via `pnpm seed`) |
-| `src/config/store.ts` | NEW - Centralized currency config |
-| `src/components/ProductGrid/index.tsx` | NEW - Reusable product grid |
-| `src/payload.config.ts` | Removed auto-seed (use `pnpm seed` instead) |
-| `src/collections/Pages/index.ts` | Removed hero/layout, added rich text with FormBlock |
-| `src/collections/Products/index.ts` | Removed layout blocks |
-| `src/app/(app)/[slug]/page.tsx` | Shows ProductGrid on homepage |
-| `src/app/(app)/shop/page.tsx` | Fixed published status filter |
-| `src/plugins/index.ts` | Uses centralized config |
-| `src/providers/index.tsx` | Uses centralized config |
-| `src/components/BeforeDashboard/index.tsx` | Actionable onboarding |
-| `src/components/RichText/index.tsx` | Added FormBlock support |
-| `FEATURES.md` | NEW - Feature documentation |
-| `docs/SETUP.md` | NEW - Detailed setup guide |
-| `README.md` | Simplified, links to docs |
+| File | Purpose |
+|------|---------|
+| `src/seed/index.ts` | Seed script with products, categories, orders, users |
+| `src/globals/Settings.ts` | Store-wide settings (form submission email) |
+| `src/hooks/sendFormSubmissionEmail.ts` | Email notifications for form submissions |
+| `src/fields/navLink.ts` | Simplified navigation link field |
+| `src/components/Header/AccountMenu.tsx` | Account dropdown for desktop |
+| `src/config/store.ts` | Centralized currency config |
 
-### Deleted Files
+### Next Phase: Design & UX Improvements
 
-- `src/blocks/ArchiveBlock/`
-- `src/blocks/Carousel/`
-- `src/blocks/ThreeItemGrid/`
-- `src/blocks/Content/`
-- `src/blocks/RenderBlocks.tsx`
-- `src/blocks/Banner/`
-- `src/blocks/CallToAction/`
-- `src/blocks/Code/`
-- `src/blocks/MediaBlock/`
-- `src/heros/` (entire folder)
-- `src/fields/hero.ts`
-- `src/fields/link.ts` (replaced by navLink.ts)
-- `src/fields/linkGroup.ts`
+The next phase is design work. This includes:
+- Theme consistency fixes
+- Dark mode improvements
+- Visual hierarchy in cart/checkout
+- Typography polish
+- Mobile UX improvements
+
+User should provide design reference or style direction before starting this phase.
+
+## TailwindPlus Components
+
+Referring to "component" means TailwindPlus component.
+
+### Default Settings
+- **Framework**: `react`
+- **Tailwind Version**: `4`
+
+### Mode Parameter
+- **Application UI & Marketing**: Use `mode: "system"` (has dark mode support)
+- **eCommerce**: Use `mode: "none"` (no dark mode in library), then manually add `dark:` classes to support dark mode
+
+### Usage Guidelines
+- Always specify: `framework: "react"`, `tailwind_version: "4"`
+- Use dot-separated component paths (e.g., `Application UI.Forms.Input Groups.Input with leading icon`)
+- All components must support dark mode - add `dark:` classes manually when needed
+- Include the component `__name__` and `__version__` as comments in generated source code
+- Adapt components to use existing project patterns and `@/components/ui/` conventions
