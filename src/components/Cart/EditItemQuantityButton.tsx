@@ -1,9 +1,11 @@
 'use client'
 
+// TailwindPlus styled quantity button
+// Adapted for: React, Tailwind v4, dark mode support
+
 import { CartItem } from '@/components/Cart'
 import { useCart } from '@payloadcms/plugin-ecommerce/client/react'
-import clsx from 'clsx'
-import { MinusIcon, PlusIcon } from 'lucide-react'
+import { MinusIcon, PlusIcon } from '@heroicons/react/24/outline'
 import React, { useMemo } from 'react'
 
 export function EditItemQuantityButton({ type, item }: { item: CartItem; type: 'minus' | 'plus' }) {
@@ -34,37 +36,27 @@ export function EditItemQuantityButton({ type, item }: { item: CartItem; type: '
   }, [item, type])
 
   return (
-    <form>
-      <button
-        aria-disabled={disabled}
-        disabled={disabled}
-        aria-label={type === 'plus' ? 'Increase item quantity' : 'Reduce item quantity'}
-        className={clsx(
-          'ease hover:cursor-pointer flex h-full min-w-[36px] max-w-[36px] flex-none items-center justify-center rounded-full px-2 transition-all duration-200 hover:border-neutral-800 hover:opacity-80',
-          {
-            'cursor-not-allowed': disabled,
-            'ml-auto': type === 'minus',
-          },
-        )}
-        onClick={(e: React.FormEvent<HTMLButtonElement>) => {
-          e.preventDefault()
-
-          if (item.id) {
-            if (type === 'plus') {
-              incrementItem(item.id as unknown as number)
-            } else {
-              decrementItem(item.id as unknown as number)
-            }
+    <button
+      type="button"
+      aria-disabled={disabled}
+      disabled={disabled}
+      aria-label={type === 'plus' ? 'Increase item quantity' : 'Reduce item quantity'}
+      className="flex size-8 items-center justify-center text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      onClick={() => {
+        if (item.id) {
+          if (type === 'plus') {
+            incrementItem(item.id as unknown as number)
+          } else {
+            decrementItem(item.id as unknown as number)
           }
-        }}
-        type="button"
-      >
-        {type === 'plus' ? (
-          <PlusIcon className="h-4 w-4 dark:text-neutral-500 hover:text-secondary" />
-        ) : (
-          <MinusIcon className="h-4 w-4 dark:text-neutral-500 hover:text-secondary" />
-        )}
-      </button>
-    </form>
+        }
+      }}
+    >
+      {type === 'plus' ? (
+        <PlusIcon className="size-4" aria-hidden="true" />
+      ) : (
+        <MinusIcon className="size-4" aria-hidden="true" />
+      )}
+    </button>
   )
 }

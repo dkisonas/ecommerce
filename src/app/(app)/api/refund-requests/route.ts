@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     // Verify customer access (user must own order or provide matching email)
     if (user) {
       const orderCustomerId =
-        typeof order.customer === 'object' ? order.customer.id : order.customer
+        typeof order.customer === 'object' && order.customer ? order.customer.id : order.customer
       if (orderCustomerId !== user.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
       }
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
     }
 
     // Create refund request
+    // @ts-expect-error - Payload types generated incorrectly for some collections
     const refundRequest = await payload.create({
       collection: 'refund-requests',
       data: {
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
         items: type === 'partial' && items ? items : undefined,
         customerEmail: email || user?.email,
       },
-      user,
+      user: user || undefined,
     })
 
     return NextResponse.json(

@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Working Style
 
 - **Update the plan file after each phase is finished** - When working through multi-phase plans, always update the plan file (in `~/.claude/plans/`) to mark completed phases and track progress.
+- **Verify UI changes with Playwright MCP** - After making UI/UX changes, use Playwright MCP to visually verify pages are looking correct, UX/UI friendly, and stylistically pretty. Use `browser_snapshot` to capture the accessibility tree and `browser_take_screenshot` to capture visual screenshots for review.
 
 ## Build & Development Commands
 

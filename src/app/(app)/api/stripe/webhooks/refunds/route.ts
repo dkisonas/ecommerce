@@ -34,6 +34,7 @@ export async function POST(request: Request) {
     }
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      // @ts-expect-error - Using newer Stripe API version than types support
       apiVersion: '2024-12-18.acacia',
     })
 

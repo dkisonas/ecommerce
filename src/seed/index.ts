@@ -336,8 +336,7 @@ async function createAdminAccount(payload: Payload) {
     data: {
       email: DEMO_ADMIN_EMAIL,
       password: 'admin1234',
-      firstName: 'Admin',
-      lastName: 'User',
+      name: 'Admin User',
       roles: ['admin'],
     },
   })
@@ -359,8 +358,7 @@ async function createDemoCustomer(payload: Payload) {
     data: {
       email: DEMO_CUSTOMER_EMAIL,
       password: 'demo1234',
-      firstName: 'Demo',
-      lastName: 'Customer',
+      name: 'Demo Customer',
       roles: ['customer'],
     },
   })
@@ -393,11 +391,10 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
       amount: 4000, // £40.00
       currency: 'GBP',
       items: [
-        { product: tshirt?.id, quantity: 1, price: 2500 },
-        { product: mug?.id, quantity: 1, price: 1500 },
+        { product: tshirt?.id, quantity: 1 },
+        { product: mug?.id, quantity: 1 },
       ],
       shippingAddress: demoAddress,
-      billingAddress: demoAddress,
     },
   })
   console.log(`  📦 Created completed order #${completedOrder.id}`)
@@ -412,9 +409,8 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
       status: 'processing',
       amount: 4500, // £45.00
       currency: 'GBP',
-      items: [{ product: wallet?.id, quantity: 1, price: 4500 }],
+      items: [{ product: wallet?.id, quantity: 1 }],
       shippingAddress: demoAddress,
-      billingAddress: demoAddress,
     },
   })
   console.log(`  📦 Created processing order #${processingOrder.id}`)
@@ -429,9 +425,8 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
       status: 'refund_requested',
       amount: 3000, // £30.00
       currency: 'GBP',
-      items: [{ product: tote?.id, quantity: 1, price: 3000 }],
+      items: [{ product: tote?.id, quantity: 1 }],
       shippingAddress: demoAddress,
-      billingAddress: demoAddress,
     },
   })
 
@@ -461,9 +456,8 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
       status: 'completed',
       amount: 2000, // £20.00
       currency: 'GBP',
-      items: [{ product: candle?.id, quantity: 1, price: 2000 }],
+      items: [{ product: candle?.id, quantity: 1 }],
       shippingAddress: demoAddress,
-      billingAddress: demoAddress,
     },
   })
 
@@ -496,9 +490,8 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
       amount: 2500, // £25.00
       currency: 'GBP',
       totalRefunded: 2500,
-      items: [{ product: tshirt?.id, quantity: 1, price: 2500 }],
+      items: [{ product: tshirt?.id, quantity: 1 }],
       shippingAddress: demoAddress,
-      billingAddress: demoAddress,
     },
   })
   console.log(`  📦 Created refunded order #${refundedOrder.id}`)
@@ -515,11 +508,10 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
       currency: 'GBP',
       totalRefunded: 2500, // Only tshirt refunded
       items: [
-        { product: tshirt?.id, quantity: 1, price: 2500 },
-        { product: tote?.id, quantity: 1, price: 3000 },
+        { product: tshirt?.id, quantity: 1 },
+        { product: tote?.id, quantity: 1 },
       ],
       shippingAddress: demoAddress,
-      billingAddress: demoAddress,
     },
   })
   console.log(`  📦 Created partially refunded order #${partialRefundOrder.id}`)

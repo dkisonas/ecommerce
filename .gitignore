@@ -41,3 +41,5 @@ next-env.d.ts
 
 public/media
 
+tailwindplus-components-*.json
+/.playwright-mcp

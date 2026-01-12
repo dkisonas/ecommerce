@@ -39,12 +39,19 @@ export const FormBlock: React.FC<
   const {
     enableIntro,
     form: formFromProps,
-    form: { id: formID, confirmationMessage, confirmationType, redirect, submitButtonLabel } = {},
     introContent,
   } = props
 
+  // Handle form being either a number (ID) or full form object
+  const formData = typeof formFromProps === 'object' ? formFromProps : null
+  const formID = formData?.id
+  const confirmationMessage = formData?.confirmationMessage
+  const confirmationType = formData?.confirmationType
+  const redirect = formData?.redirect
+  const submitButtonLabel = formData?.submitButtonLabel
+
   const formMethods = useForm({
-    defaultValues: buildInitialFormState(formFromProps.fields),
+    defaultValues: buildInitialFormState(formData?.fields || []),
   })
   const {
     control,
@@ -139,17 +146,17 @@ export const FormBlock: React.FC<
           {!hasSubmitted && (
             <form id={formID} onSubmit={handleSubmit(onSubmit)}>
               <div className="mb-4 last:mb-0">
-                {formFromProps &&
-                  formFromProps.fields &&
-                  formFromProps.fields?.map((field, index) => {
-                    const Field: React.FC<Record<string, unknown>> | undefined =
-                      fields?.[field.blockType as keyof typeof fields]
+                {formData &&
+                  formData.fields &&
+                  formData.fields?.map((field, index) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const Field: any = fields?.[field.blockType as keyof typeof fields]
 
                     if (Field) {
                       return (
                         <div className="mb-6 last:mb-0" key={index}>
                           <Field
-                            form={formFromProps}
+                            form={formData}
                             {...field}
                             {...formMethods}
                             control={control}

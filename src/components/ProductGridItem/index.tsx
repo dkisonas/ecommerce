@@ -1,8 +1,11 @@
-import type { Product } from '@/payload-types'
+// TailwindPlus Component: Ecommerce.Components.Product Lists.With inline price
+// Version: 2026-01-12-184920
+// Adapted for: React, Tailwind v4, dark mode support (manually added)
 
-import { Media } from '@/components/Media'
+import type { Product } from '@/payload-types'
 import { Price } from '@/components/Price'
-import clsx from 'clsx'
+import { QuickAddToCart } from '@/components/Cart/QuickAddToCart'
+import Image from 'next/image'
 import Link from 'next/link'
 import React from 'react'
 
@@ -11,7 +14,7 @@ type Props = {
 }
 
 export const ProductGridItem: React.FC<Props> = ({ product }) => {
-  const { gallery, priceInGBP, title } = product
+  const { gallery, priceInGBP, title, slug } = product
 
   let price = priceInGBP
 
@@ -29,34 +32,53 @@ export const ProductGridItem: React.FC<Props> = ({ product }) => {
     }
   }
 
+  const galleryImage = gallery?.[0]?.image
   const image =
-    gallery?.[0]?.image && typeof gallery[0]?.image !== 'string' ? gallery[0]?.image : false
+    galleryImage && typeof galleryImage === 'object' && 'url' in galleryImage ? galleryImage : null
+
+  // Get category name if available
+  const category =
+    product.categories && product.categories.length > 0
+      ? typeof product.categories[0] === 'object'
+        ? product.categories[0].title
+        : null
+      : null
 
   return (
-    <Link className="relative inline-block h-full w-full group" href={`/products/${product.slug}`}>
-      {image ? (
-        <Media
-          className={clsx(
-            'relative aspect-square object-cover border rounded-2xl p-8 bg-primary',
+    <div className="group relative">
+      <Link href={`/products/${slug}`} className="block">
+        <div className="aspect-square w-full overflow-hidden rounded-lg bg-muted dark:bg-muted relative">
+          {image?.url ? (
+            <Image
+              alt={image.alt || title || ''}
+              src={image.url}
+              width={400}
+              height={400}
+              className="size-full object-cover object-center group-hover:opacity-75 transition-opacity"
+            />
+          ) : (
+            <div className="size-full flex items-center justify-center text-muted-foreground">
+              No image
+            </div>
           )}
-          height={80}
-          imgClassName={clsx('h-full w-full object-cover rounded-2xl', {
-            'transition duration-300 ease-in-out group-hover:scale-102': true,
-          })}
-          resource={image}
-          width={80}
-        />
-      ) : null}
-
-      <div className="font-primary text-foreground flex justify-between items-center mt-4">
-        <div>{title}</div>
-
-        {typeof price === 'number' && (
-          <div className="">
-            <Price amount={price} />
+          {/* Quick add button - appears on hover */}
+          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            <QuickAddToCart product={product} />
           </div>
-        )}
-      </div>
-    </Link>
+        </div>
+        <div className="mt-4 flex justify-between">
+          <div>
+            <h3 className="text-sm text-foreground">
+              <span aria-hidden="true" className="absolute inset-0" />
+              {title}
+            </h3>
+            {category && <p className="mt-1 text-sm text-muted-foreground">{category}</p>}
+          </div>
+          {typeof price === 'number' && (
+            <Price amount={price} className="text-sm font-medium text-foreground" />
+          )}
+        </div>
+      </Link>
+    </div>
   )
 }

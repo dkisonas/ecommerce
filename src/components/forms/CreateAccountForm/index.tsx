@@ -1,13 +1,10 @@
 'use client'
 
-import { FormError } from '@/components/forms/FormError'
-import { FormItem } from '@/components/forms/FormItem'
+// TailwindPlus styled create account form
+// Adapted for: React, Tailwind v4, dark mode support
+
 import { Message } from '@/components/Message'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { useAuth } from '@/providers/Auth'
-import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -20,7 +17,6 @@ type FormData = {
 
 export const CreateAccountForm: React.FC = () => {
   const searchParams = useSearchParams()
-  const allParams = searchParams.toString() ? `?${searchParams.toString()}` : ''
   const { login } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -72,65 +68,74 @@ export const CreateAccountForm: React.FC = () => {
   )
 
   return (
-    <form className="max-w-lg py-4" onSubmit={handleSubmit(onSubmit)}>
-      <div className="prose dark:prose-invert mb-6">
-        <p>
-          {`This is where new customers can signup and create a new account. To manage all users, `}
-          <Link href="/admin/collections/users">login to the admin dashboard</Link>.
-        </p>
-      </div>
-
+    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <Message error={error} />
 
-      <div className="flex flex-col gap-8 mb-8">
-        <FormItem>
-          <Label htmlFor="email" className="mb-2">
-            Email Address
-          </Label>
-          <Input
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-foreground">
+          Email address
+        </label>
+        <div className="mt-2">
+          <input
             id="email"
-            {...register('email', { required: 'Email is required.' })}
             type="email"
+            autoComplete="email"
+            {...register('email', { required: 'Email is required.' })}
+            className="block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
           />
-          {errors.email && <FormError message={errors.email.message} />}
-        </FormItem>
+        </div>
+        {errors.email && (
+          <p className="mt-2 text-sm text-destructive">{errors.email.message}</p>
+        )}
+      </div>
 
-        <FormItem>
-          <Label htmlFor="password" className="mb-2">
-            New password
-          </Label>
-          <Input
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-foreground">
+          Password
+        </label>
+        <div className="mt-2">
+          <input
             id="password"
-            {...register('password', { required: 'Password is required.' })}
             type="password"
+            autoComplete="new-password"
+            {...register('password', { required: 'Password is required.' })}
+            className="block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
           />
-          {errors.password && <FormError message={errors.password.message} />}
-        </FormItem>
+        </div>
+        {errors.password && (
+          <p className="mt-2 text-sm text-destructive">{errors.password.message}</p>
+        )}
+      </div>
 
-        <FormItem>
-          <Label htmlFor="passwordConfirm" className="mb-2">
-            Confirm Password
-          </Label>
-          <Input
+      <div>
+        <label htmlFor="passwordConfirm" className="block text-sm font-medium text-foreground">
+          Confirm password
+        </label>
+        <div className="mt-2">
+          <input
             id="passwordConfirm"
+            type="password"
+            autoComplete="new-password"
             {...register('passwordConfirm', {
               required: 'Please confirm your password.',
               validate: (value) => value === password.current || 'The passwords do not match',
             })}
-            type="password"
+            className="block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
           />
-          {errors.passwordConfirm && <FormError message={errors.passwordConfirm.message} />}
-        </FormItem>
+        </div>
+        {errors.passwordConfirm && (
+          <p className="mt-2 text-sm text-destructive">{errors.passwordConfirm.message}</p>
+        )}
       </div>
-      <Button disabled={loading} type="submit" variant="default">
-        {loading ? 'Processing' : 'Create Account'}
-      </Button>
 
-      <div className="prose dark:prose-invert mt-8">
-        <p>
-          {'Already have an account? '}
-          <Link href={`/login${allParams}`}>Login</Link>
-        </p>
+      <div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex w-full justify-center rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {loading ? 'Creating account...' : 'Create account'}
+        </button>
       </div>
     </form>
   )

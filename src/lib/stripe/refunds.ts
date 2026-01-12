@@ -9,6 +9,7 @@ const getStripeClient = (): Stripe => {
     throw new Error('STRIPE_SECRET_KEY is not configured')
   }
   return new Stripe(secretKey, {
+    // @ts-expect-error - Using newer Stripe API version than types support
     apiVersion: '2024-12-18.acacia',
   })
 }

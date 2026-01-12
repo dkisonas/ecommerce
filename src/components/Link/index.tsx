@@ -5,12 +5,13 @@ import { cn } from '@/utilities/cn'
 import Link from 'next/link'
 import React from 'react'
 
-type CMSLinkType = {
+export type CMSLinkType = {
   appearance?: 'inline' | ButtonProps['variant']
   children?: React.ReactNode
   className?: string
   label?: string | null
   newTab?: boolean | null
+  onClick?: () => void
   // Legacy reference type (for blocks like CallToAction)
   reference?: {
     relationTo: 'pages' | 'posts'
@@ -30,7 +31,7 @@ function resolveHref(props: CMSLinkType): string | null {
   switch (type) {
     case 'category':
       if (typeof category === 'object' && category?.slug) {
-        return `/products?category=${category.slug}`
+        return `/products?categories=${category.slug}`
       }
       return null
 
@@ -59,7 +60,7 @@ function resolveHref(props: CMSLinkType): string | null {
 }
 
 export const CMSLink: React.FC<CMSLinkType> = (props) => {
-  const { appearance = 'inline', children, className, label, newTab, size: sizeFromProps } = props
+  const { appearance = 'inline', children, className, label, newTab, onClick, size: sizeFromProps } = props
 
   const href = resolveHref(props)
 
@@ -71,7 +72,7 @@ export const CMSLink: React.FC<CMSLinkType> = (props) => {
   /* Ensure we don't break any styles set by richText */
   if (appearance === 'inline') {
     return (
-      <Link className={cn(className)} href={href} {...newTabProps}>
+      <Link className={cn(className)} href={href} onClick={onClick} {...newTabProps}>
         {label && label}
         {children && children}
       </Link>
@@ -80,7 +81,7 @@ export const CMSLink: React.FC<CMSLinkType> = (props) => {
 
   return (
     <Button asChild className={className} size={size} variant={appearance}>
-      <Link className={cn(className)} href={href} {...newTabProps}>
+      <Link className={cn(className)} href={href} onClick={onClick} {...newTabProps}>
         {label && label}
         {children && children}
       </Link>

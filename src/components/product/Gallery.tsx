@@ -1,20 +1,14 @@
 'use client'
 
+// TailwindPlus Component: Ecommerce.Components.Product Overviews.With image gallery and expandable details
+// Version: 2026-01-12-184920
+// Adapted for: React, Tailwind v4, dark mode support (manually added)
+
 import type { Media as MediaType, Product } from '@/payload-types'
-
-import { GridTileImage } from '@/components/Grid/tile'
-import { Media } from '@/components/Media'
+import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
+import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
-import React, { useEffect } from 'react'
-
-import {
-  Carousel,
-  CarouselApi,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from '@/components/ui/carousel'
+import React, { useEffect, useState } from 'react'
 import { DefaultDocumentIDType } from 'payload'
 
 type Props = {
@@ -23,32 +17,17 @@ type Props = {
 
 export const Gallery: React.FC<Props> = ({ gallery }) => {
   const searchParams = useSearchParams()
-  const [current, setCurrent] = React.useState(0)
-  const [mainApi, setMainApi] = React.useState<CarouselApi>()
-  const [thumbApi, setThumbApi] = React.useState<CarouselApi>()
+  const [selectedIndex, setSelectedIndex] = useState(0)
 
-  // Sync main carousel with thumbnail carousel
-  useEffect(() => {
-    if (!mainApi || !thumbApi) return
-
-    const onSelect = () => {
-      const selectedIndex = mainApi.selectedScrollSnap()
-      setCurrent(selectedIndex)
-      thumbApi.scrollTo(selectedIndex)
-    }
-
-    mainApi.on('select', onSelect)
-    return () => {
-      mainApi.off('select', onSelect)
-    }
-  }, [mainApi, thumbApi])
+  // Filter out items with null/undefined images
+  const validGalleryItems = gallery.filter((item) => item.image && typeof item.image === 'object')
 
   // Handle variant selection from URL params
   useEffect(() => {
     const values = searchParams.values().toArray()
 
-    if (values && mainApi) {
-      const index = gallery.findIndex((item) => {
+    if (values && validGalleryItems.length > 0) {
+      const index = validGalleryItems.findIndex((item) => {
         if (!item.variantOption) return false
 
         let variantID: DefaultDocumentIDType
@@ -60,97 +39,80 @@ export const Gallery: React.FC<Props> = ({ gallery }) => {
         return Boolean(values.find((value) => value === String(variantID)))
       })
       if (index !== -1) {
-        setCurrent(index)
-        mainApi.scrollTo(index, true)
+        setSelectedIndex(index)
       }
     }
-  }, [searchParams, mainApi, gallery])
-
-  // Filter out items with null/undefined images
-  const validGalleryItems = gallery.filter((item) => item.image && typeof item.image === 'object')
+  }, [searchParams, validGalleryItems])
 
   if (validGalleryItems.length === 0) {
-    return null
-  }
-
-  const handleThumbnailClick = (index: number) => {
-    setCurrent(index)
-    mainApi?.scrollTo(index, true)
+    return (
+      <div className="aspect-square w-full bg-muted dark:bg-muted rounded-lg flex items-center justify-center">
+        <span className="text-muted-foreground">No image available</span>
+      </div>
+    )
   }
 
   return (
-    <div className="w-full">
-      {/* Main Image Carousel - Swipeable on mobile */}
-      <div className="relative w-full mb-4 md:mb-8">
-        <Carousel
-          setApi={setMainApi}
-          className="w-full"
-          opts={{
-            align: 'start',
-            loop: false,
-            containScroll: 'trimSnaps',
-            slidesToScroll: 1,
-          }}
-        >
-          <CarouselContent>
-            {validGalleryItems.map((item, i) => {
-              if (!item.image || typeof item.image !== 'object') return null
-
-              const imageId = 'id' in item.image ? item.image.id : i
-
-              return (
-                <CarouselItem key={`main-${imageId}-${i}`} className="basis-full">
-                  <div className="relative aspect-square w-full overflow-hidden rounded-lg">
-                    <Media
-                      resource={item.image as MediaType}
-                      className="w-full h-full"
-                      imgClassName="w-full h-full object-cover rounded-lg"
-                    />
-                  </div>
-                </CarouselItem>
-              )
-            })}
-          </CarouselContent>
-          {validGalleryItems.length > 1 && (
-            <>
-              <CarouselPrevious className="left-2 md:left-4" />
-              <CarouselNext className="right-2 md:right-4" />
-            </>
-          )}
-        </Carousel>
-      </div>
-
-      {/* Thumbnail Carousel - Hidden on mobile, shown on desktop */}
+    <TabGroup
+      selectedIndex={selectedIndex}
+      onChange={setSelectedIndex}
+      className="flex flex-col-reverse"
+    >
+      {/* Image selector (thumbnails) */}
       {validGalleryItems.length > 1 && (
-        <Carousel
-          setApi={setThumbApi}
-          className="w-full hidden md:block"
-          opts={{ align: 'start', loop: false, containScroll: 'trimSnaps', slidesToScroll: 1 }}
-        >
-          <CarouselContent>
-            {validGalleryItems.map((item, i) => {
-              if (!item.image || typeof item.image !== 'object') return null
-
-              const imageId = 'id' in item.image ? item.image.id : i
-              const isActive = current === i
-
+        <div className="mx-auto mt-6 hidden w-full max-w-2xl sm:block lg:max-w-none">
+          <TabList className="grid grid-cols-4 gap-6">
+            {validGalleryItems.map((item, index) => {
+              const image = item.image as MediaType
               return (
-                <CarouselItem
-                  className="basis-1/5 cursor-pointer"
-                  key={`thumb-${imageId}-${i}`}
-                  onClick={() => handleThumbnailClick(i)}
+                <Tab
+                  key={image.id || index}
+                  className="group relative flex h-24 cursor-pointer items-center justify-center rounded-md bg-muted dark:bg-muted text-sm font-medium uppercase hover:bg-muted/80 focus:ring-2 focus:ring-secondary focus:ring-offset-2 focus:ring-offset-background focus:outline-none"
                 >
-                  <GridTileImage
-                    active={isActive}
-                    media={item.image as MediaType}
-                    isInteractive={true}
+                  <span className="sr-only">{image.alt || `Image ${index + 1}`}</span>
+                  <span className="absolute inset-0 overflow-hidden rounded-md">
+                    {image.url && (
+                      <Image
+                        alt={image.alt || ''}
+                        src={image.url}
+                        fill
+                        className="object-cover"
+                      />
+                    )}
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 rounded-md ring-2 ring-transparent ring-offset-2 group-data-[selected]:ring-secondary"
                   />
-                </CarouselItem>
+                </Tab>
               )
             })}
-          </CarouselContent>
-        </Carousel>
+          </TabList>
+        </div>
       )}
-    </div>
+
+      {/* Main image panels */}
+      <TabPanels>
+        {validGalleryItems.map((item, index) => {
+          const image = item.image as MediaType
+          return (
+            <TabPanel key={image.id || index}>
+              <div className="aspect-square w-full overflow-hidden rounded-lg bg-muted dark:bg-muted">
+                {image.url && (
+                  <Image
+                    alt={image.alt || ''}
+                    src={image.url}
+                    width={800}
+                    height={800}
+                    className="size-full object-cover"
+                    priority={index === 0}
+                  />
+                )}
+              </div>
+            </TabPanel>
+          )
+        })}
+      </TabPanels>
+    </TabGroup>
   )
 }

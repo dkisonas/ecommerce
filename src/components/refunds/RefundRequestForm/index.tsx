@@ -6,8 +6,6 @@ import { useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { FormItem } from '@/components/forms/FormItem'
 import { FormError } from '@/components/forms/FormError'
 import { Message } from '@/components/Message'
 import {
@@ -89,16 +87,24 @@ export const RefundRequestForm: React.FC<Props> = ({ order, userEmail }) => {
       } else {
         // Calculate amount for this item
         const orderItem = order.items?.find((i) => {
-          const itemProductId = typeof i.product === 'object' ? i.product.id : i.product
+          const itemProductId = typeof i.product === 'object' && i.product ? i.product.id : i.product
           const itemVariantId = i.variant && typeof i.variant === 'object' ? i.variant.id : i.variant
           return itemProductId === productId && itemVariantId === variantId
         })
 
         if (orderItem) {
-          const itemAmount = (orderItem.total || 0) / (orderItem.quantity || 1)
+          // Calculate item price from product or variant
+          const product = orderItem.product
+          const variantObj = orderItem.variant
+          let itemPrice = 0
+          if (typeof variantObj === 'object' && variantObj?.priceInGBP) {
+            itemPrice = variantObj.priceInGBP
+          } else if (typeof product === 'object' && product?.priceInGBP) {
+            itemPrice = product.priceInGBP
+          }
           newMap.set(key, {
             quantity: orderItem.quantity || 1,
-            amount: itemAmount,
+            amount: itemPrice,
           })
         }
       }
@@ -138,20 +144,22 @@ export const RefundRequestForm: React.FC<Props> = ({ order, userEmail }) => {
           const variantId = variantIdStr === 'no-variant' ? undefined : parseInt(variantIdStr)
 
           const orderItem = order.items?.find((i) => {
-            const itemProductId = typeof i.product === 'object' ? i.product.id : i.product
+            const itemProductId = typeof i.product === 'object' && i.product ? i.product.id : i.product
             const itemVariantId = i.variant && typeof i.variant === 'object' ? i.variant.id : i.variant
             return itemProductId === parseInt(productId) && itemVariantId === variantId
           })
 
           if (orderItem) {
-            const productIdNum = typeof orderItem.product === 'object' ? orderItem.product.id : orderItem.product
-            items.push({
-              product: productIdNum,
-              variant: variantId,
-              quantity: value.quantity,
-              amount: value.amount,
-            })
-            totalAmount += value.amount * value.quantity
+            const productIdNum = typeof orderItem.product === 'object' && orderItem.product ? orderItem.product.id : orderItem.product
+            if (productIdNum) {
+              items.push({
+                product: productIdNum,
+                variant: variantId,
+                quantity: value.quantity,
+                amount: value.amount,
+              })
+              totalAmount += value.amount * value.quantity
+            }
           }
         })
 
@@ -176,7 +184,7 @@ export const RefundRequestForm: React.FC<Props> = ({ order, userEmail }) => {
         throw new Error(errorData.error || 'Failed to create refund request')
       }
 
-      const result = await response.json()
+      await response.json()
       alert('Refund request submitted successfully! We will review it and get back to you soon.')
       setOpen(false)
       reset()
@@ -234,27 +242,36 @@ export const RefundRequestForm: React.FC<Props> = ({ order, userEmail }) => {
               <Label>Select Items to Refund *</Label>
               <div className="border rounded p-4 space-y-3 max-h-60 overflow-y-auto">
                 {order.items.map((item) => {
-                  if (typeof item.product !== 'object') return null
+                  if (typeof item.product !== 'object' || !item.product) return null
 
-                  const productId = item.product.id
-                  const variantId = item.variant && typeof item.variant === 'object' ? item.variant.id : item.variant
+                  // Save to const for TypeScript type narrowing in callbacks
+                  const product = item.product
+                  const variant = item.variant
+                  const productId = product.id
+                  const variantId = variant && typeof variant === 'object' ? variant.id : variant
                   const key = `${productId}-${variantId || 'no-variant'}`
 
                   const isSelected = selectedItems.has(key)
-                  const itemAmount = (item.total || 0) / (item.quantity || 1)
+                  // Calculate item price from product or variant
+                  let itemAmount = 0
+                  if (typeof variant === 'object' && variant?.priceInGBP) {
+                    itemAmount = variant.priceInGBP
+                  } else if (product.priceInGBP) {
+                    itemAmount = product.priceInGBP
+                  }
 
                   return (
                     <label key={item.id} className="flex items-center gap-3 p-2 hover:bg-muted rounded cursor-pointer">
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => handleItemToggle(key, item.product, item.variant)}
+                        onChange={() => handleItemToggle(key, product, variant)}
                       />
                       <div className="flex-1">
-                        <div className="font-medium">{item.product.title}</div>
-                        {item.variant && typeof item.variant === 'object' && (
+                        <div className="font-medium">{product.title}</div>
+                        {variant && typeof variant === 'object' && (
                           <div className="text-sm text-muted-foreground">
-                            {item.variant.title || 'Variant'}
+                            {variant.title || 'Variant'}
                           </div>
                         )}
                         <div className="text-sm text-muted-foreground">

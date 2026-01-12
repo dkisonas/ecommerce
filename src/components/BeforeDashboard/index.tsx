@@ -1,4 +1,5 @@
 import { Banner } from '@payloadcms/ui'
+import Link from 'next/link'
 import React from 'react'
 
 import './index.scss'
@@ -16,11 +17,11 @@ export const BeforeDashboard: React.FC = () => {
         <h5>Quick Start</h5>
         <ul className={`${baseClass}__checklist`}>
           <li>
-            <a href="/admin/collections/products/create">Add your first product</a>
+            <Link href="/admin/collections/products/create">Add your first product</Link>
             {' — Give it a title, description, price, and at least one image.'}
           </li>
           <li>
-            <a href="/admin/collections/categories">Create categories</a>
+            <Link href="/admin/collections/categories">Create categories</Link>
             {' — Organize your products (e.g., "Clothing", "Accessories").'}
           </li>
           <li>
@@ -56,7 +57,7 @@ export const BeforeDashboard: React.FC = () => {
             {' for order confirmation emails.'}
           </li>
           <li>
-            <a href="/admin/globals/header">Update header navigation</a>
+            <Link href="/admin/globals/header">Update header navigation</Link>
             {' — Add links to your store pages.'}
           </li>
         </ul>

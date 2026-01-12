@@ -6,7 +6,7 @@ import {
 } from '@payloadcms/richtext-lexical/react'
 
 import type { FormBlock as FormBlockProps } from '@/payload-types'
-import { FormBlock } from '@/blocks/Form/Component'
+import { FormBlock, FormBlockType } from '@/blocks/Form/Component'
 import { cn } from '@/utilities/cn'
 
 type NodeTypes = DefaultNodeTypes | SerializedBlockNode<FormBlockProps>
@@ -14,7 +14,8 @@ type NodeTypes = DefaultNodeTypes | SerializedBlockNode<FormBlockProps>
 const jsxConverters: JSXConvertersFunction<NodeTypes> = ({ defaultConverters }) => ({
   ...defaultConverters,
   blocks: {
-    formBlock: ({ node }) => <FormBlock {...node.fields} />,
+    // Cast to FormBlockType since generated Payload types differ from plugin types
+    formBlock: ({ node }) => <FormBlock {...(node.fields as unknown as FormBlockType)} />,
   },
 })
 

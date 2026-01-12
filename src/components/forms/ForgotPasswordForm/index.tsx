@@ -1,12 +1,10 @@
 'use client'
 
-import { FormError } from '@/components/forms/FormError'
-import { FormItem } from '@/components/forms/FormItem'
+// TailwindPlus styled forgot password form
+// Adapted for: React, Tailwind v4, dark mode support
+
 import { Message } from '@/components/Message'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import Link from 'next/link'
+import { CheckCircleIcon } from '@heroicons/react/24/outline'
 import React, { Fragment, useCallback, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
@@ -17,6 +15,7 @@ type FormData = {
 export const ForgotPasswordForm: React.FC = () => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const {
     formState: { errors },
@@ -25,6 +24,7 @@ export const ForgotPasswordForm: React.FC = () => {
   } = useForm<FormData>()
 
   const onSubmit = useCallback(async (data: FormData) => {
+    setLoading(true)
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_SERVER_URL}/api/users/forgot-password`,
       {
@@ -36,6 +36,8 @@ export const ForgotPasswordForm: React.FC = () => {
       },
     )
 
+    setLoading(false)
+
     if (response.ok) {
       setSuccess(true)
       setError('')
@@ -46,47 +48,57 @@ export const ForgotPasswordForm: React.FC = () => {
     }
   }, [])
 
+  if (success) {
+    return (
+      <div className="text-center">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-secondary/10">
+          <CheckCircleIcon className="size-6 text-secondary" aria-hidden="true" />
+        </div>
+        <h3 className="mt-4 text-lg font-medium text-foreground">Check your email</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          We&apos;ve sent a password reset link to your email address. Please check your inbox.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <Fragment>
-      {!success && (
-        <React.Fragment>
-          <h1 className="text-xl mb-4">Forgot Password</h1>
-          <div className="prose dark:prose-invert mb-8">
-            <p>
-              {`Please enter your email below. You will receive an email message with instructions on
-              how to reset your password. To manage your all users, `}
-              <Link href="/admin/collections/users">login to the admin dashboard</Link>.
-            </p>
-          </div>
-          <form className="max-w-lg" onSubmit={handleSubmit(onSubmit)}>
-            <Message className="mb-8" error={error} />
+      <p className="text-sm text-muted-foreground mb-6">
+        Enter your email address and we&apos;ll send you a link to reset your password.
+      </p>
 
-            <FormItem className="mb-8">
-              <Label htmlFor="email" className="mb-2">
-                Email address
-              </Label>
-              <Input
-                id="email"
-                {...register('email', { required: 'Please provide your email.' })}
-                type="email"
-              />
-              {errors.email && <FormError message={errors.email.message} />}
-            </FormItem>
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <Message error={error} />
 
-            <Button type="submit" variant="default">
-              Forgot Password
-            </Button>
-          </form>
-        </React.Fragment>
-      )}
-      {success && (
-        <React.Fragment>
-          <h1 className="text-xl mb-4">Request submitted</h1>
-          <div className="prose dark:prose-invert">
-            <p>Check your email for a link that will allow you to securely reset your password.</p>
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-foreground">
+            Email address
+          </label>
+          <div className="mt-2">
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              {...register('email', { required: 'Please provide your email.' })}
+              className="block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
+            />
           </div>
-        </React.Fragment>
-      )}
+          {errors.email && (
+            <p className="mt-2 text-sm text-destructive">{errors.email.message}</p>
+          )}
+        </div>
+
+        <div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex w-full justify-center rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? 'Sending...' : 'Send reset link'}
+          </button>
+        </div>
+      </form>
     </Fragment>
   )
 }

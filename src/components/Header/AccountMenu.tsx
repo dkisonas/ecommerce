@@ -1,15 +1,12 @@
 'use client'
 
+// TailwindPlus styled account menu
+// Adapted for: React, Tailwind v4, dark mode support
+
 import { useAuth } from '@/providers/Auth'
-import { User } from 'lucide-react'
+import { UserIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 
 export function AccountMenu() {
   const { user } = useAuth()
@@ -18,42 +15,50 @@ export function AccountMenu() {
     return (
       <Link
         href="/login"
-        className="flex h-11 w-11 items-center justify-center rounded-md border border-neutral-200 text-black transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:bg-black dark:text-white dark:hover:bg-neutral-800"
+        className="text-sm font-semibold text-foreground hover:text-secondary transition-colors"
         aria-label="Log in"
       >
-        <User className="h-4 w-4" />
+        Log in <span aria-hidden="true">&rarr;</span>
       </Link>
     )
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className="flex h-11 w-11 items-center justify-center rounded-md border border-neutral-200 text-black transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:bg-black dark:text-white dark:hover:bg-neutral-800"
-          aria-label="Account menu"
-        >
-          <User className="h-4 w-4" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuItem asChild>
-          <Link href="/orders" className="cursor-pointer">
+    <Menu as="div" className="relative">
+      <MenuButton className="-m-1.5 flex items-center p-1.5 text-foreground hover:text-secondary transition-colors">
+        <span className="sr-only">Open user menu</span>
+        <UserIcon className="size-6" aria-hidden="true" />
+      </MenuButton>
+      <MenuItems
+        transition
+        className="absolute right-0 z-50 mt-2.5 w-40 origin-top-right rounded-md bg-background py-2 shadow-lg ring-1 ring-border transition focus:outline-none data-[closed]:scale-95 data-[closed]:transform data-[closed]:opacity-0 data-[enter]:duration-100 data-[leave]:duration-75 data-[enter]:ease-out data-[leave]:ease-in"
+      >
+        <MenuItem>
+          <Link
+            href="/orders"
+            className="block px-3 py-1 text-sm text-foreground data-[focus]:bg-muted"
+          >
             Orders
           </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/account" className="cursor-pointer">
+        </MenuItem>
+        <MenuItem>
+          <Link
+            href="/account"
+            className="block px-3 py-1 text-sm text-foreground data-[focus]:bg-muted"
+          >
             My Account
           </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/logout" className="cursor-pointer">
+        </MenuItem>
+        <div className="my-1 border-t border-border" />
+        <MenuItem>
+          <Link
+            href="/logout"
+            className="block px-3 py-1 text-sm text-foreground data-[focus]:bg-muted"
+          >
             Log out
           </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </MenuItem>
+      </MenuItems>
+    </Menu>
   )
 }

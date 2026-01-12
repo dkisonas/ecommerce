@@ -97,6 +97,7 @@ export async function POST(request: Request) {
     }
 
     // Create refund record
+    // @ts-expect-error - Payload types generated incorrectly for some collections
     const refund = await payload.create({
       collection: 'refunds',
       data: {

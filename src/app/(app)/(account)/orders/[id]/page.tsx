@@ -231,7 +231,7 @@ export default async function Order({ params, searchParams }: PageProps) {
           )}
 
           {order.refunds && Array.isArray(order.refunds) && order.refunds.length > 0 && (
-            <RefundHistory refunds={order.refunds} />
+            <RefundHistory refunds={order.refunds.filter((r): r is NonNullable<typeof r> & object => typeof r === 'object')} />
           )}
         </div>
       </div>

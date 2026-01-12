@@ -1,4 +1,4 @@
-import type { Access } from 'payload'
+import type { Access, Where } from 'payload'
 
 import { checkRole } from '@/access/utilities'
 
@@ -11,13 +11,12 @@ export const adminOrRefundOrderOwner: Access = async ({ req: { user } }) => {
   }
 
   if (user?.id) {
+    // Return a Where clause to filter refunds to only those belonging to the user's orders
     return {
-      order: {
-        customer: {
-          equals: user.id,
-        },
+      'order.customer': {
+        equals: user.id,
       },
-    }
+    } as Where
   }
 
   return false

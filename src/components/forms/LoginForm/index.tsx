@@ -1,11 +1,9 @@
 'use client'
 
-import { FormError } from '@/components/forms/FormError'
-import { FormItem } from '@/components/forms/FormItem'
+// TailwindPlus styled login form
+// Adapted for: React, Tailwind v4, dark mode support
+
 import { Message } from '@/components/Message'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { useAuth } from '@/providers/Auth'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -45,46 +43,64 @@ export const LoginForm: React.FC = () => {
   )
 
   return (
-    <form className="" onSubmit={handleSubmit(onSubmit)}>
-      <Message className="classes.message" error={error} />
-      <div className="flex flex-col gap-8">
-        <FormItem>
-          <Label htmlFor="email">Email</Label>
-          <Input
+    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+      <Message error={error} />
+
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-foreground">
+          Email address
+        </label>
+        <div className="mt-2">
+          <input
             id="email"
             type="email"
+            autoComplete="email"
             {...register('email', { required: 'Email is required.' })}
+            className="block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
           />
-          {errors.email && <FormError message={errors.email.message} />}
-        </FormItem>
+        </div>
+        {errors.email && (
+          <p className="mt-2 text-sm text-destructive">{errors.email.message}</p>
+        )}
+      </div>
 
-        <FormItem>
-          <Label htmlFor="password">Password</Label>
-          <Input
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-foreground">
+          Password
+        </label>
+        <div className="mt-2">
+          <input
             id="password"
             type="password"
+            autoComplete="current-password"
             {...register('password', { required: 'Please provide a password.' })}
+            className="block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
           />
-          {errors.password && <FormError message={errors.password.message} />}
-        </FormItem>
+        </div>
+        {errors.password && (
+          <p className="mt-2 text-sm text-destructive">{errors.password.message}</p>
+        )}
+      </div>
 
-        <div className="text-primary/70 mb-6 prose prose-a:hover:text-primary dark:prose-invert">
-          <p>
-            Forgot your password?{' '}
-            <Link href={`/recover-password${allParams}`}>Click here to reset it</Link>
-          </p>
+      <div className="flex items-center justify-end">
+        <div className="text-sm">
+          <Link
+            href={`/forgot-password${allParams}`}
+            className="font-medium text-secondary hover:text-secondary/80"
+          >
+            Forgot your password?
+          </Link>
         </div>
       </div>
 
-      <div className="flex gap-4 justify-between">
-        <Button asChild variant="outline" size="lg">
-          <Link href={`/create-account${allParams}`} className="grow max-w-[50%]">
-            Create an account
-          </Link>
-        </Button>
-        <Button className="grow" disabled={isLoading} size="lg" type="submit" variant="default">
-          {isLoading ? 'Processing' : 'Continue'}
-        </Button>
+      <div>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="flex w-full justify-center rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {isLoading ? 'Signing in...' : 'Sign in'}
+        </button>
       </div>
     </form>
   )

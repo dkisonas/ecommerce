@@ -1,4 +1,6 @@
-import { Grid } from '@/components/Grid'
+// TailwindPlus styled product grid
+// Adapted for: React, Tailwind v4, dark mode support
+
 import { ProductGridItem } from '@/components/ProductGridItem'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
@@ -23,6 +25,9 @@ export async function ProductGrid({ limit, category }: Props) {
       gallery: true,
       categories: true,
       priceInGBP: true,
+      enableVariants: true,
+      inventory: true,
+      variants: true,
     },
     where: {
       and: [
@@ -56,10 +61,10 @@ export async function ProductGrid({ limit, category }: Props) {
   }
 
   return (
-    <Grid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
       {products.docs.map((product) => (
         <ProductGridItem key={product.id} product={product} />
       ))}
-    </Grid>
+    </div>
   )
 }

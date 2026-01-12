@@ -78,6 +78,9 @@ export const validateRefund: CollectionBeforeChangeHook<Refund> = async ({
   }
 
   // Validate refund amount
+  if (data.amount === undefined) {
+    throw new Error('Refund amount is required')
+  }
   const amountValidation = validateRefundAmount(
     order.amount,
     order.totalRefunded || 0,

@@ -1,13 +1,14 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import type { Product, Variant } from '@/payload-types'
+// TailwindPlus styled Add to Cart button
+// Adapted for: React, Tailwind v4, dark mode support
 
+import type { Product, Variant } from '@/payload-types'
 import { useCart } from '@payloadcms/plugin-ecommerce/client/react'
-import clsx from 'clsx'
 import { useSearchParams } from 'next/navigation'
 import React, { useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
+
 type Props = {
   product: Product
 }
@@ -95,17 +96,18 @@ export function AddToCart({ product }: Props) {
   }, [selectedVariant, cart?.items, product])
 
   return (
-    <Button
+    <button
+      type="button"
       aria-label="Add to cart"
-      variant={'outline'}
-      className={clsx({
-        'hover:opacity-90': true,
-      })}
       disabled={disabled}
       onClick={addToCart}
-      type="submit"
+      className="flex max-w-xs flex-1 items-center justify-center rounded-md bg-secondary px-8 py-3 text-base font-medium text-secondary-foreground shadow-sm hover:bg-secondary/90 focus:ring-2 focus:ring-secondary focus:ring-offset-2 focus:ring-offset-background focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors sm:w-full"
     >
-      Add To Cart
-    </Button>
+      {disabled && product.enableVariants && !selectedVariant
+        ? 'Select options'
+        : disabled
+          ? 'Out of stock'
+          : 'Add to cart'}
+    </button>
   )
 }

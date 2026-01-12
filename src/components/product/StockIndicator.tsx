@@ -1,5 +1,10 @@
 'use client'
+
+// TailwindPlus styled stock indicator
+// Adapted for: React, Tailwind v4, dark mode support
+
 import { Product, Variant } from '@/payload-types'
+import { CheckIcon, XMarkIcon } from '@heroicons/react/20/solid'
 import { useSearchParams } from 'next/navigation'
 import { useMemo } from 'react'
 
@@ -43,10 +48,28 @@ export const StockIndicator: React.FC<Props> = ({ product }) => {
     return null
   }
 
+  if (stockQuantity === 0 || !stockQuantity) {
+    return (
+      <p className="flex items-center text-sm text-destructive">
+        <XMarkIcon className="mr-1.5 size-5 shrink-0" aria-hidden="true" />
+        Out of stock
+      </p>
+    )
+  }
+
+  if (stockQuantity < 10) {
+    return (
+      <p className="flex items-center text-sm text-warning">
+        <CheckIcon className="mr-1.5 size-5 shrink-0 text-secondary" aria-hidden="true" />
+        Only {stockQuantity} left in stock
+      </p>
+    )
+  }
+
   return (
-    <div className="uppercase font-tertiary text-sm font-medium text-gray-500">
-      {stockQuantity < 10 && stockQuantity > 0 && <p>Only {stockQuantity} left in stock</p>}
-      {(stockQuantity === 0 || !stockQuantity) && <p>Out of stock</p>}
-    </div>
+    <p className="flex items-center text-sm text-muted-foreground">
+      <CheckIcon className="mr-1.5 size-5 shrink-0 text-secondary" aria-hidden="true" />
+      In stock
+    </p>
   )
 }
