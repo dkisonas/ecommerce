@@ -24,11 +24,11 @@ export interface Data {
 }
 
 export type FormBlockType = {
-  blockName?: string
+  blockName?: string | null
   blockType?: 'formBlock'
-  enableIntro: boolean
-  form: FormType
-  introContent?: SerializedEditorState
+  enableIntro?: boolean | null
+  form: FormType | number
+  introContent?: SerializedEditorState | null
 }
 
 export const FormBlock: React.FC<

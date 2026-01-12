@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Working Style
+
+- **Update the plan file after each phase is finished** - When working through multi-phase plans, always update the plan file (in `~/.claude/plans/`) to mark completed phases and track progress.
+
 ## Build & Development Commands
 
 ### Initial Setup
@@ -43,7 +47,7 @@ This is a **Payload CMS 3.x** ecommerce application using **Next.js 15 App Route
 
 - `src/collections/` - Payload collection definitions (database models)
 - `src/globals/` - Site-wide configuration (Header, Footer)
-- `src/blocks/` - Rich text embeddable blocks (Banner, CallToAction, Code, Form, MediaBlock)
+- `src/blocks/` - Rich text embeddable blocks (Form only)
 - `src/access/` - Access control functions
 - `src/config/` - Centralized configuration (store settings, currency)
 - `src/seed/` - Auto-seed script for default content
@@ -72,12 +76,8 @@ Run `pnpm seed` to create demo content:
 
 ### Rich Text Blocks
 
-The following blocks can be embedded in rich text content:
+The following block can be embedded in rich text content:
 - `FormBlock` - Contact forms (via form-builder plugin)
-- `BannerBlock` - Alerts and announcements
-- `CallToActionBlock` - CTA buttons
-- `MediaBlock` - Images
-- `CodeBlock` - Code snippets
 
 ## Important Patterns
 
@@ -182,3 +182,11 @@ To fix, run `pnpm lint:fix` or manually address warnings in:
 - `src/blocks/ThreeItemGrid/`
 - `src/blocks/Content/`
 - `src/blocks/RenderBlocks.tsx`
+- `src/blocks/Banner/`
+- `src/blocks/CallToAction/`
+- `src/blocks/Code/`
+- `src/blocks/MediaBlock/`
+- `src/heros/` (entire folder)
+- `src/fields/hero.ts`
+- `src/fields/link.ts` (replaced by navLink.ts)
+- `src/fields/linkGroup.ts`
