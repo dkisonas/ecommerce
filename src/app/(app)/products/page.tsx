@@ -58,8 +58,8 @@ export default async function ShopPage({ searchParams }: Props) {
         ...(category
           ? [
               {
-                categories: {
-                  contains: category,
+                'categories.slug': {
+                  equals: String(category),
                 },
               },
             ]

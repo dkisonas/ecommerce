@@ -11,8 +11,16 @@ type Props = {
 export function Item({ href, title }: Props) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const active = pathname === href
-  const q = searchParams.get('q')
+  const category = searchParams.get('category')
+
+  // Check if this item is active
+  // For "All" (/products), active when no category is selected
+  // For categories (/products?category=slug), active when category matches
+  const isAllProducts = href === '/products'
+  const active = isAllProducts
+    ? pathname === '/products' && !category
+    : href === `/products?category=${category}`
+
   const DynamicTag = active ? 'p' : Link
 
   return (

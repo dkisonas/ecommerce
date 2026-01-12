@@ -20,7 +20,7 @@ pnpm dev
 Open [http://localhost:3000](http://localhost:3000) to see your store.
 Open [http://localhost:3000/admin](http://localhost:3000/admin) to access the admin panel.
 
-Run `pnpm seed` to create demo content (home page, navigation, categories).
+Run `pnpm seed` to create demo content (navigation, categories).
 
 ## Environment Variables
 

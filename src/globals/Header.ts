@@ -1,6 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
-import { link } from '@/fields/link'
+import { navLink } from '@/fields/navLink'
+import { revalidateDelete, revalidatePage } from '@/collections/Pages/hooks/revalidatePage'
 
 export const Header: GlobalConfig = {
   slug: 'header',
@@ -11,11 +12,7 @@ export const Header: GlobalConfig = {
     {
       name: 'navItems',
       type: 'array',
-      fields: [
-        link({
-          appearances: false,
-        }),
-      ],
+      fields: [navLink],
       maxRows: 6,
     },
   ],

@@ -1654,12 +1654,11 @@ export interface Header {
   navItems?:
     | {
         link: {
-          type?: ('reference' | 'custom') | null;
+          type: 'system' | 'category' | 'page' | 'custom';
           newTab?: boolean | null;
-          reference?: {
-            relationTo: 'pages';
-            value: number | Page;
-          } | null;
+          systemPage?: ('/' | '/products') | null;
+          category?: (number | null) | Category;
+          page?: (number | null) | Page;
           url?: string | null;
           label: string;
         };
@@ -1678,12 +1677,11 @@ export interface Footer {
   navItems?:
     | {
         link: {
-          type?: ('reference' | 'custom') | null;
+          type: 'system' | 'category' | 'page' | 'custom';
           newTab?: boolean | null;
-          reference?: {
-            relationTo: 'pages';
-            value: number | Page;
-          } | null;
+          systemPage?: ('/' | '/products') | null;
+          category?: (number | null) | Category;
+          page?: (number | null) | Page;
           url?: string | null;
           label: string;
         };
@@ -1706,7 +1704,9 @@ export interface HeaderSelect<T extends boolean = true> {
           | {
               type?: T;
               newTab?: T;
-              reference?: T;
+              systemPage?: T;
+              category?: T;
+              page?: T;
               url?: T;
               label?: T;
             };
@@ -1729,7 +1729,9 @@ export interface FooterSelect<T extends boolean = true> {
           | {
               type?: T;
               newTab?: T;
-              reference?: T;
+              systemPage?: T;
+              category?: T;
+              page?: T;
               url?: T;
               label?: T;
             };

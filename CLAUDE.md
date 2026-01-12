@@ -59,16 +59,16 @@ The codebase extends Payload's `@payloadcms/plugin-ecommerce` and `@payloadcms/p
 ### Seed Script
 
 Run `pnpm seed` to create demo content:
-- Home page (slug: "home")
-- Header navigation (Home, Shop links)
+- Header navigation (Home, Products links)
 - Footer navigation
 - Demo categories (Clothing, Accessories, Home & Living)
 
 ### Simplified Content Model
 
-- **Pages**: Title + Rich Text content (with embeddable Form blocks) + SEO
+- **Pages**: Title + Rich Text content (with embeddable Form blocks) + SEO - for static pages like About, Contact
 - **Products**: Title + Description + Gallery + Price/Inventory + Categories + SEO
-- **Homepage**: Automatically displays all published products
+- **Homepage** (`/`): Static page showing products - no database entry needed
+- **Products page** (`/products`): Lists all products with search and category filters
 
 ### Rich Text Blocks
 
@@ -95,10 +95,6 @@ export const storeConfig = {
   },
 }
 ```
-
-### Home Page
-
-The page with slug `home` serves as the homepage (`/`) and automatically displays all published products.
 
 ### Access Control Hierarchy
 

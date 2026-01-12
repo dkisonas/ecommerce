@@ -1,4 +1,4 @@
-import type { Page, Product } from '@/payload-types'
+import type { Category, Page, Product } from '@/payload-types'
 
 import { Button, type ButtonProps } from '@/components/ui/button'
 import { cn } from '@/utilities/cn'
@@ -11,34 +11,61 @@ type CMSLinkType = {
   className?: string
   label?: string | null
   newTab?: boolean | null
+  // Legacy reference type (for blocks like CallToAction)
   reference?: {
     relationTo: 'pages' | 'posts'
     value: Page | Product | string | number
   } | null
-  size?: ButtonProps['size'] | null
-  type?: 'custom' | 'reference' | null
+  // New navigation link types
+  type?: 'custom' | 'reference' | 'system' | 'category' | 'page' | null
+  systemPage?: '/' | '/products' | null
+  category?: number | Category | null
+  page?: number | Page | null
   url?: string | null
+  size?: ButtonProps['size'] | null
+}
+
+function resolveHref(props: CMSLinkType): string | null {
+  const { type, systemPage, category, page, reference, url } = props
+
+  switch (type) {
+    case 'system':
+      return systemPage || null
+
+    case 'category':
+      if (typeof category === 'object' && category?.slug) {
+        return `/products?category=${category.slug}`
+      }
+      return null
+
+    case 'page':
+      if (typeof page === 'object' && page?.slug) {
+        return `/${page.slug}`
+      }
+      return null
+
+    case 'custom':
+      return url || null
+
+    // Legacy reference type (for backwards compatibility)
+    case 'reference':
+      if (typeof reference?.value === 'object' && reference.value.slug) {
+        return reference.relationTo !== 'pages'
+          ? `/${reference.relationTo}/${reference.value.slug}`
+          : `/${reference.value.slug}`
+      }
+      return null
+
+    default:
+      // Fallback: if url is provided, use it
+      return url || null
+  }
 }
 
 export const CMSLink: React.FC<CMSLinkType> = (props) => {
-  const {
-    type,
-    appearance = 'inline',
-    children,
-    className,
-    label,
-    newTab,
-    reference,
-    size: sizeFromProps,
-    url,
-  } = props
+  const { appearance = 'inline', children, className, label, newTab, size: sizeFromProps } = props
 
-  const href =
-    type === 'reference' && typeof reference?.value === 'object' && reference.value.slug
-      ? `${reference?.relationTo !== 'pages' ? `/${reference?.relationTo}` : ''}/${
-          reference.value.slug
-        }`
-      : url
+  const href = resolveHref(props)
 
   if (!href) return null
 
