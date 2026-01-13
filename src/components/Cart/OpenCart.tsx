@@ -7,23 +7,11 @@ import React from 'react'
 export function OpenCartButton({
   className: _className,
   quantity,
-  isLoading,
   ...rest
 }: {
   className?: string
   quantity?: number
-  isLoading?: boolean
 }) {
-  // Show skeleton while loading
-  if (isLoading) {
-    return (
-      <div className="relative flex items-center">
-        <div className="size-6 bg-muted rounded animate-pulse" />
-        <span className="sr-only">Loading cart</span>
-      </div>
-    )
-  }
-
   return (
     <div
       className="relative flex items-center text-foreground hover:text-secondary transition-colors"
@@ -35,7 +23,7 @@ export function OpenCartButton({
           {quantity}
         </span>
       ) : null}
-      <span className="sr-only">Shopping cart</span>
+      <span className="sr-only">Shopping cart{quantity ? ` (${quantity} items)` : ''}</span>
     </div>
   )
 }

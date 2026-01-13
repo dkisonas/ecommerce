@@ -10,27 +10,20 @@ import { Bars3Icon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/o
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-import type { Header } from '@/payload-types'
+import type { Header, User } from '@/payload-types'
 import { CMSLink } from '@/components/Link'
 import { LogoIcon } from '@/components/icons/logo'
 import { HeaderActions } from './HeaderActions'
-import { HeaderProvider, useHeaderContext } from './HeaderContext'
 import { Cart } from '@/components/Cart'
 import { cn } from '@/utilities/cn'
+import { useAuth } from '@/providers/Auth'
 
 type Props = {
   header: Header
+  user?: User | null
 }
 
-export function HeaderClient({ header }: Props) {
-  return (
-    <HeaderProvider>
-      <HeaderContent header={header} />
-    </HeaderProvider>
-  )
-}
-
-function HeaderContent({ header }: Props) {
+export function HeaderClient({ header, user }: Props) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isHeaderVisible, setIsHeaderVisible] = useState(true)
@@ -38,7 +31,14 @@ function HeaderContent({ header }: Props) {
   const lastScrollY = useRef(0)
   const menu = header.navItems || []
   const router = useRouter()
-  const { isLoading, user } = useHeaderContext()
+  const { logout } = useAuth()
+
+  const handleLogout = async () => {
+    setMobileMenuOpen(false)
+    await logout()
+    router.push('/')
+    // router.refresh()
+  }
 
   // Prevent scrolling when search is focused
   useEffect(() => {
@@ -147,9 +147,9 @@ function HeaderContent({ header }: Props) {
                 <Bars3Icon aria-hidden="true" className="size-6" />
               </button>
 
-              {/* Desktop - Account & Cart (synced loading) */}
+              {/* Desktop - Account & Cart */}
               <div className="hidden lg:flex items-center gap-4">
-                <HeaderActions />
+                <HeaderActions user={user} />
               </div>
             </div>
           </div>
@@ -224,17 +224,7 @@ function HeaderContent({ header }: Props) {
 
               {/* Account section */}
               <div className="py-6">
-                {isLoading ? (
-                  // Loading skeleton for mobile menu - synced with header
-                  <div className="space-y-2">
-                    <div className="-mx-3 px-3 py-2.5">
-                      <div className="h-5 w-24 bg-muted rounded animate-pulse" />
-                    </div>
-                    <div className="-mx-3 px-3 py-2.5">
-                      <div className="h-5 w-32 bg-muted rounded animate-pulse" />
-                    </div>
-                  </div>
-                ) : user ? (
+                {user ? (
                   <div className="space-y-2">
                     <Link
                       href="/orders"
@@ -250,13 +240,12 @@ function HeaderContent({ header }: Props) {
                     >
                       My Account
                     </Link>
-                    <Link
-                      href="/logout"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold text-foreground hover:bg-muted"
+                    <button
+                      onClick={handleLogout}
+                      className="-mx-3 block w-full text-left rounded-lg px-3 py-2.5 text-base font-semibold text-foreground hover:bg-muted"
                     >
                       Log out
-                    </Link>
+                    </button>
                   </div>
                 ) : (
                   <div className="space-y-2">
