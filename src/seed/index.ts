@@ -1,5 +1,5 @@
 import type { Payload } from 'payload'
-import type { Category, Product } from '@/payload-types'
+import type { Category, Product, VariantType, VariantOption } from '@/payload-types'
 
 /**
  * Seed script - clears demo content and recreates it
@@ -23,6 +23,14 @@ export async function seed(payload: Payload): Promise<void> {
   const products = await createProducts(payload, categories, mediaIds)
   console.log(`✅ Created ${products.length} products`)
 
+  // Create variant types and options
+  const variantTypes = await createVariantTypes(payload)
+  console.log(`✅ Created ${variantTypes.length} variant types with options`)
+
+  // Create product variants
+  await createProductVariants(payload, products, variantTypes, mediaIds)
+  console.log('✅ Created product variants')
+
   await createNavigation(payload)
   console.log('✅ Created navigation')
 
@@ -44,6 +52,7 @@ export async function seed(payload: Payload): Promise<void> {
 const DEMO_SLUGS = {
   products: ['classic-t-shirt', 'leather-wallet', 'ceramic-mug', 'canvas-tote-bag', 'scented-candle'],
   categories: ['clothing', 'accessories', 'home-and-living'],
+  variantTypes: ['color', 'size'],
 }
 
 const DEMO_CUSTOMER_EMAIL = 'demo@example.com'
@@ -100,6 +109,18 @@ async function clearDemoContent(payload: Payload) {
     // Ignore errors
   }
 
+  // Delete demo variants first (has foreign key to products)
+  try {
+    await payload.delete({
+      collection: 'variants',
+      where: {
+        'product.slug': { in: DEMO_SLUGS.products },
+      },
+    })
+  } catch {
+    // Ignore errors
+  }
+
   // Delete demo products - wrap in try/catch to handle Stripe hook errors
   try {
     await payload.delete({
@@ -111,6 +132,30 @@ async function clearDemoContent(payload: Payload) {
   } catch {
     // Stripe hook may fail for products without Stripe IDs - that's ok
     console.log('  ⚠️ Some products could not be deleted via API (Stripe sync issue)')
+  }
+
+  // Delete demo variant options (has foreign key to variant types)
+  try {
+    await payload.delete({
+      collection: 'variantOptions',
+      where: {
+        'variantType.name': { in: DEMO_SLUGS.variantTypes },
+      },
+    })
+  } catch {
+    // Ignore errors
+  }
+
+  // Delete demo variant types
+  try {
+    await payload.delete({
+      collection: 'variantTypes',
+      where: {
+        name: { in: DEMO_SLUGS.variantTypes },
+      },
+    })
+  } catch {
+    // Ignore errors
   }
 
   // Delete demo media
@@ -362,6 +407,192 @@ async function createDemoCustomer(payload: Payload) {
       roles: ['customer'],
     },
   })
+}
+
+type VariantTypeWithOptions = VariantType & {
+  optionRecords: VariantOption[]
+}
+
+async function createVariantTypes(payload: Payload): Promise<VariantTypeWithOptions[]> {
+  const variantTypesData = [
+    {
+      label: 'Color',
+      name: 'color',
+      options: [
+        { label: 'Red', value: 'red' },
+        { label: 'Blue', value: 'blue' },
+        { label: 'Black', value: 'black' },
+        { label: 'White', value: 'white' },
+      ],
+    },
+    {
+      label: 'Size',
+      name: 'size',
+      options: [
+        { label: 'Small', value: 'small' },
+        { label: 'Medium', value: 'medium' },
+        { label: 'Large', value: 'large' },
+        { label: '40ml', value: '40ml' },
+        { label: '100ml', value: '100ml' },
+      ],
+    },
+  ]
+
+  const createdTypes: VariantTypeWithOptions[] = []
+
+  for (const typeData of variantTypesData) {
+    // Create the variant type
+    const variantType = await payload.create({
+      collection: 'variantTypes',
+      data: {
+        label: typeData.label,
+        name: typeData.name,
+      },
+    })
+
+    // Create options for this type
+    const optionRecords: VariantOption[] = []
+    for (const opt of typeData.options) {
+      const option = await payload.create({
+        collection: 'variantOptions',
+        data: {
+          variantType: variantType.id,
+          label: opt.label,
+          value: opt.value,
+        },
+      })
+      optionRecords.push(option)
+    }
+
+    createdTypes.push({
+      ...variantType,
+      optionRecords,
+    })
+  }
+
+  return createdTypes
+}
+
+async function createProductVariants(
+  payload: Payload,
+  products: Product[],
+  variantTypes: VariantTypeWithOptions[],
+  mediaIds: Record<string, number>,
+) {
+  const tshirt = products.find((p) => p.slug === 'classic-t-shirt')
+  const candle = products.find((p) => p.slug === 'scented-candle')
+
+  const colorType = variantTypes.find((t) => t.name === 'color')
+  const sizeType = variantTypes.find((t) => t.name === 'size')
+
+  if (!colorType || !sizeType) {
+    console.log('  ⚠️ Could not find variant types')
+    return
+  }
+
+  // Get color options
+  const colorOptions = {
+    red: colorType.optionRecords.find((o) => o.value === 'red'),
+    blue: colorType.optionRecords.find((o) => o.value === 'blue'),
+    black: colorType.optionRecords.find((o) => o.value === 'black'),
+    white: colorType.optionRecords.find((o) => o.value === 'white'),
+  }
+
+  // Get size options
+  const sizeOptions = {
+    small: sizeType.optionRecords.find((o) => o.value === 'small'),
+    medium: sizeType.optionRecords.find((o) => o.value === 'medium'),
+    large: sizeType.optionRecords.find((o) => o.value === 'large'),
+    ml40: sizeType.optionRecords.find((o) => o.value === '40ml'),
+    ml100: sizeType.optionRecords.find((o) => o.value === '100ml'),
+  }
+
+  // Enable variants on T-Shirt and create color/size variants
+  if (tshirt) {
+    // Update product to enable variants and link variant types
+    await payload.update({
+      collection: 'products',
+      id: tshirt.id,
+      data: {
+        enableVariants: true,
+        variantTypes: [colorType.id, sizeType.id],
+        // Clear the base price since variants will have prices
+        priceInGBP: null,
+        priceInGBPEnabled: false,
+      },
+    })
+
+    // Create variants for T-Shirt: Color + Size combinations
+    const tshirtVariants = [
+      { color: colorOptions.red, size: sizeOptions.small, price: 2500, inventory: 20 },
+      { color: colorOptions.red, size: sizeOptions.medium, price: 2500, inventory: 25 },
+      { color: colorOptions.red, size: sizeOptions.large, price: 2700, inventory: 15 },
+      { color: colorOptions.blue, size: sizeOptions.small, price: 2500, inventory: 18 },
+      { color: colorOptions.blue, size: sizeOptions.medium, price: 2500, inventory: 30 },
+      { color: colorOptions.blue, size: sizeOptions.large, price: 2700, inventory: 12 },
+      { color: colorOptions.black, size: sizeOptions.small, price: 2500, inventory: 22 },
+      { color: colorOptions.black, size: sizeOptions.medium, price: 2500, inventory: 28 },
+      { color: colorOptions.black, size: sizeOptions.large, price: 2700, inventory: 10 },
+    ]
+
+    for (const v of tshirtVariants) {
+      if (v.color && v.size) {
+        await payload.create({
+          collection: 'variants',
+          data: {
+            product: tshirt.id,
+            title: `${v.color.label} / ${v.size.label}`,
+            options: [v.color.id, v.size.id],
+            priceInGBP: v.price,
+            priceInGBPEnabled: true,
+            inventory: v.inventory,
+            _status: 'published',
+          },
+        })
+      }
+    }
+    console.log(`  🎨 Created ${tshirtVariants.length} variants for Classic T-Shirt`)
+  }
+
+  // Enable variants on Scented Candle and create size variants (40ml, 100ml)
+  if (candle) {
+    // Update product to enable variants
+    await payload.update({
+      collection: 'products',
+      id: candle.id,
+      data: {
+        enableVariants: true,
+        variantTypes: [sizeType.id],
+        // Clear the base price since variants will have prices
+        priceInGBP: null,
+        priceInGBPEnabled: false,
+      },
+    })
+
+    // Create size variants for candle
+    const candleVariants = [
+      { size: sizeOptions.ml40, price: 1500, inventory: 50 },
+      { size: sizeOptions.ml100, price: 2500, inventory: 30 },
+    ]
+
+    for (const v of candleVariants) {
+      if (v.size) {
+        await payload.create({
+          collection: 'variants',
+          data: {
+            product: candle.id,
+            title: v.size.label,
+            options: [v.size.id],
+            priceInGBP: v.price,
+            priceInGBPEnabled: true,
+            inventory: v.inventory,
+            _status: 'published',
+          },
+        })
+      }
+    }
+    console.log(`  📏 Created ${candleVariants.length} size variants for Scented Candle`)
+  }
 }
 
 async function createDemoOrders(payload: Payload, customerId: number, products: Product[]) {

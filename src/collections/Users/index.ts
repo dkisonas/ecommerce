@@ -27,8 +27,26 @@ export const Users: CollectionConfig = {
   },
   fields: [
     {
+      name: 'firstName',
+      type: 'text',
+      label: 'First Name',
+    },
+    {
+      name: 'lastName',
+      type: 'text',
+      label: 'Last Name',
+    },
+    {
       name: 'name',
       type: 'text',
+      admin: {
+        description: 'Display name (optional). If empty, first + last name will be used.',
+      },
+    },
+    {
+      name: 'phone',
+      type: 'text',
+      label: 'Phone Number',
     },
     {
       name: 'roles',

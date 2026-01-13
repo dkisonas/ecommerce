@@ -26,25 +26,28 @@ export const RenderParamsComponent: React.FC<Props> = ({
     }
   }, [paramValues, onParams])
 
-  if (paramValues.length) {
-    return (
-      <div className={className}>
-        {paramValues.map((paramValue, index) => {
-          if (!paramValue) return null
+  // Only render if there are actual param values (not just array length)
+  const hasParams = paramValues.some((v) => v)
 
-          return (
-            <Message
-              className="mb-8"
-              key={paramValue}
-              {...{
-                [params[index]]: paramValue,
-              }}
-            />
-          )
-        })}
-      </div>
-    )
+  if (!hasParams) {
+    return null
   }
 
-  return null
+  return (
+    <div className={className}>
+      {paramValues.map((paramValue, index) => {
+        if (!paramValue) return null
+
+        return (
+          <Message
+            className="mb-8"
+            key={paramValue}
+            {...{
+              [params[index]]: paramValue,
+            }}
+          />
+        )
+      })}
+    </div>
+  )
 }

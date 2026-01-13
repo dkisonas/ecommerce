@@ -36,26 +36,31 @@ export const AddressItem: React.FC<Props> = ({
   }
 
   return (
-    <div className="flex items-center">
-      <div className="grow">
-        <p className="font-medium">
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0 text-sm">
+        <p className="font-medium text-foreground">
           {address.title && <span>{address.title} </span>}
           {address.firstName} {address.lastName}
         </p>
-        <p>{address.company && <span>{address.company} </span>}</p>
-        <p>{address.phone && <span>{address.phone}</span>}</p>
-        <p>
+        {address.company && (
+          <p className="text-muted-foreground">{address.company}</p>
+        )}
+        <p className="text-muted-foreground">
           {address.addressLine1}
-          {address.addressLine2 && <>, {address.addressLine2}</>}
+          {address.addressLine2 && `, ${address.addressLine2}`}
         </p>
-        <p>
-          {address.city}, {address.state} {address.postalCode}
+        <p className="text-muted-foreground">
+          {address.city}
+          {address.state && `, ${address.state}`} {address.postalCode}
         </p>
-        <p>{address.country}</p>
+        <p className="text-muted-foreground">{address.country}</p>
+        {address.phone && (
+          <p className="text-muted-foreground mt-1">{address.phone}</p>
+        )}
       </div>
 
       {!hideActions && address.id && (
-        <div className="shrink flex flex-col gap-2">
+        <div className="shrink-0">
           {actions ? (
             actions
           ) : (

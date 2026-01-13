@@ -7,11 +7,10 @@ import type { Media, Product } from '@/payload-types'
 import { Gallery } from '@/components/product/Gallery'
 import { ProductDescription } from '@/components/product/ProductDescription'
 import { ProductGridItem } from '@/components/ProductGridItem'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
 import configPromise from '@payload-config'
-import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import { Metadata } from 'next'
 import { draftMode } from 'next/headers'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import React, { Suspense } from 'react'
@@ -121,15 +120,16 @@ export default async function ProductPage({ params }: Args) {
       />
 
       <div className="bg-background dark:bg-background">
-        <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8">
-          {/* Back button */}
-          <Link
-            href="/products"
-            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-8"
-          >
-            <ArrowLeftIcon className="size-4" />
-            Back to products
-          </Link>
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8">
+          {/* Breadcrumbs */}
+          <div className="py-6">
+            <Breadcrumbs
+              items={[
+                { name: 'Products', href: '/products' },
+                { name: product.title, href: `/products/${product.slug}`, current: true },
+              ]}
+            />
+          </div>
 
           <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
             {/* Image gallery */}

@@ -4,7 +4,7 @@
 // Version: 2026-01-12-184920
 // Adapted for: React, Tailwind v4, dark mode support (manually added)
 
-import { useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
 import { XMarkIcon, ShoppingBagIcon } from '@heroicons/react/24/outline'
 import { Price } from '@/components/Price'
@@ -17,16 +17,36 @@ import { DeleteItemButton } from './DeleteItemButton'
 import { EditItemQuantityButton } from './EditItemQuantityButton'
 import { OpenCartButton } from './OpenCart'
 import { Product } from '@/payload-types'
+import { HeaderContext } from '@/components/Header/HeaderContext'
 
-export function CartModal() {
+type CartModalProps = {
+  /** External loading state - when provided, overrides internal loading logic */
+  externalLoading?: boolean
+}
+
+export function CartModal({ externalLoading }: CartModalProps = {}) {
   const { cart } = useCart()
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
+
+  // Try to get loading state from HeaderContext if available (when inside HeaderProvider)
+  // Returns null if used outside HeaderProvider, which is fine - we'll fall back to internal loading
+  const headerContext = useContext(HeaderContext)
 
   useEffect(() => {
     // Close the cart modal when the pathname changes
     setIsOpen(false)
   }, [pathname])
+
+  // Priority: externalLoading prop > HeaderContext > false (no internal loading)
+  // The cart hook doesn't provide a loading state, so we rely on context or prop
+  const contextLoading = headerContext?.isLoading
+  const isLoading =
+    externalLoading !== undefined
+      ? externalLoading
+      : contextLoading !== undefined
+        ? contextLoading
+        : false
 
   const totalQuantity = useMemo(() => {
     if (!cart || !cart.items || !cart.items.length) return undefined
@@ -35,8 +55,12 @@ export function CartModal() {
 
   return (
     <>
-      <button onClick={() => setIsOpen(true)} className="relative">
-        <OpenCartButton quantity={totalQuantity} />
+      <button
+        onClick={() => !isLoading && setIsOpen(true)}
+        disabled={isLoading}
+        className="relative disabled:cursor-default"
+      >
+        <OpenCartButton quantity={totalQuantity} isLoading={isLoading} />
       </button>
 
       <Dialog open={isOpen} onClose={setIsOpen} className="relative z-50">

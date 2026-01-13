@@ -13,34 +13,29 @@ export const OrderItem: React.FC<Props> = ({ order }) => {
   const itemsLabel = order.items?.length === 1 ? 'Item' : 'Items'
 
   return (
-    <div className="bg-card border rounded-lg px-4 py-2 md:px-6 md:py-4 flex flex-col sm:flex-row gap-12 sm:items-center sm:justify-between">
-      <div className="flex flex-col gap-4">
-        <h3 className="text-sm uppercase font-tertiary tracking-widest text-primary/50 truncate max-w-[8rem] sm:max-w-none">{`#${order.id}`}</h3>
-
-        <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-6">
-          <p className="text-xl">
-            <time dateTime={order.createdAt}>
-              {formatDateTime({ date: order.createdAt, format: 'MMMM dd, yyyy' })}
-            </time>
-          </p>
-
+    <div className="px-4 py-5 sm:px-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between hover:bg-muted/50 transition-colors">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 mb-1">
+          <h3 className="text-sm font-semibold text-foreground">Order #{order.id}</h3>
           {order.status && <OrderStatus status={order.status} />}
         </div>
 
-        <p className="flex gap-2 text-xs text-primary/80">
-          <span>
-            {order.items?.length} {itemsLabel}
-          </span>
+        <p className="text-sm text-muted-foreground">
+          <time dateTime={order.createdAt}>
+            {formatDateTime({ date: order.createdAt, format: 'MMMM dd, yyyy' })}
+          </time>
+          <span className="mx-2">·</span>
+          <span>{order.items?.length} {itemsLabel}</span>
           {order.amount && (
             <>
-              <span>•</span>
+              <span className="mx-2">·</span>
               <Price as="span" amount={order.amount} currencyCode={order.currency ?? undefined} />
             </>
           )}
         </p>
       </div>
 
-      <Button variant="outline" asChild className="self-start sm:self-auto">
+      <Button variant="outline" size="sm" asChild className="shrink-0">
         <Link href={`/orders/${order.id}`}>View Order</Link>
       </Button>
     </div>

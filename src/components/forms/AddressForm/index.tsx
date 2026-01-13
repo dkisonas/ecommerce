@@ -14,16 +14,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-import { titles } from './constants'
 import { Button } from '@/components/ui/button'
 import { deepMergeSimple } from 'payload/shared'
 import { FormError } from '@/components/forms/FormError'
 import { FormItem } from '@/components/forms/FormItem'
 
 type AddressFormValues = {
-  title?: string | null
-  firstName?: string | null
-  lastName?: string | null
   company?: string | null
   addressLine1?: string | null
   addressLine2?: string | null
@@ -31,7 +27,6 @@ type AddressFormValues = {
   state?: string | null
   postalCode?: string | null
   country?: string | null
-  phone?: string | null
 }
 
 type Props = {
@@ -83,60 +78,8 @@ export const AddressForm: React.FC<Props> = ({
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <div className="flex flex-col gap-4 mb-8">
-        <div className="flex flex-col md:flex-row gap-4">
-          <FormItem className="shrink">
-            <Label htmlFor="title">Title</Label>
-
-            <Select
-              {...register('title')}
-              onValueChange={(value) => {
-                setValue('title', value, { shouldValidate: true })
-              }}
-              defaultValue={initialData?.title || ''}
-            >
-              <SelectTrigger id="title">
-                <SelectValue placeholder="Title" />
-              </SelectTrigger>
-              <SelectContent>
-                {titles.map((title) => (
-                  <SelectItem key={title} value={title}>
-                    {title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.title && <FormError message={errors.title.message} />}
-          </FormItem>
-
-          <FormItem>
-            <Label htmlFor="firstName">First name*</Label>
-            <Input
-              id="firstName"
-              autoComplete="given-name"
-              {...register('firstName', { required: 'First name is required.' })}
-            />
-            {errors.firstName && <FormError message={errors.firstName.message} />}
-          </FormItem>
-
-          <FormItem>
-            <Label htmlFor="lastName">Last name*</Label>
-            <Input
-              autoComplete="family-name"
-              id="lastName"
-              {...register('lastName', { required: 'Last name is required.' })}
-            />
-            {errors.lastName && <FormError message={errors.lastName.message} />}
-          </FormItem>
-        </div>
-
         <FormItem>
-          <Label htmlFor="phone">Phone</Label>
-          <Input type="tel" id="phone" autoComplete="mobile tel" {...register('phone')} />
-          {errors.phone && <FormError message={errors.phone.message} />}
-        </FormItem>
-
-        <FormItem>
-          <Label htmlFor="company">Company</Label>
+          <Label htmlFor="company">Company (optional)</Label>
           <Input id="company" autoComplete="organization" {...register('company')} />
           {errors.company && <FormError message={errors.company.message} />}
         </FormItem>

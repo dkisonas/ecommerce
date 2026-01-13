@@ -9,7 +9,16 @@ import Link from 'next/link'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 
 export function AccountMenu() {
-  const { user } = useAuth()
+  const { user, status } = useAuth()
+
+  // Show skeleton while auth status is loading
+  if (status === undefined) {
+    return (
+      <div className="flex items-center">
+        <div className="size-6 rounded-full bg-muted animate-pulse" />
+      </div>
+    )
+  }
 
   if (!user) {
     return (

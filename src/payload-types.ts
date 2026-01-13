@@ -192,7 +192,13 @@ export interface UserAuthOperations {
  */
 export interface User {
   id: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  /**
+   * Display name (optional). If empty, first + last name will be used.
+   */
   name?: string | null;
+  phone?: string | null;
   roles?: ('admin' | 'customer')[] | null;
   orders?: {
     docs?: (number | Order)[];
@@ -1113,7 +1119,10 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  firstName?: T;
+  lastName?: T;
   name?: T;
+  phone?: T;
   roles?: T;
   orders?: T;
   cart?: T;

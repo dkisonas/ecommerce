@@ -8,30 +8,49 @@ import { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogPanel } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 
 import type { Header } from '@/payload-types'
 import { CMSLink } from '@/components/Link'
 import { LogoIcon } from '@/components/icons/logo'
+import { HeaderActions } from './HeaderActions'
+import { HeaderProvider, useHeaderContext } from './HeaderContext'
 import { Cart } from '@/components/Cart'
-import { AccountMenu } from './AccountMenu'
 import { cn } from '@/utilities/cn'
-import { useAuth } from '@/providers/Auth'
 
 type Props = {
   header: Header
 }
 
 export function HeaderClient({ header }: Props) {
+  return (
+    <HeaderProvider>
+      <HeaderContent header={header} />
+    </HeaderProvider>
+  )
+}
+
+function HeaderContent({ header }: Props) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isHeaderVisible, setIsHeaderVisible] = useState(true)
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
   const lastScrollY = useRef(0)
   const menu = header.navItems || []
-  const pathname = usePathname()
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const { user } = useAuth()
+  const { isLoading, user } = useHeaderContext()
+
+  // Prevent scrolling when search is focused
+  useEffect(() => {
+    if (isSearchFocused) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isSearchFocused])
 
   // Smart scroll behavior - hide on scroll down, show on scroll up
   useEffect(() => {
@@ -58,35 +77,6 @@ export function HeaderClient({ header }: Props) {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Get current categories from URL for active link detection
-  const currentCategories = searchParams.get('categories')?.split(',') || []
-
-  // Check if a nav item is active
-  const isNavItemActive = (item: (typeof menu)[0]) => {
-    const link = item.link
-
-    // For category links, check if the category is in current selection
-    if (link.type === 'category' && typeof link.category === 'object' && link.category?.slug) {
-      return pathname === '/products' && currentCategories.includes(link.category.slug)
-    }
-
-    // For page links, check exact match
-    if (link.type === 'page' && typeof link.page === 'object' && link.page?.slug) {
-      return pathname === `/${link.page.slug}`
-    }
-
-    // For custom links, check if pathname matches
-    if (link.type === 'custom' && link.url) {
-      // For /products link, only match if no categories selected
-      if (link.url === '/products') {
-        return pathname === '/products' && currentCategories.length === 0
-      }
-      return pathname === link.url || (link.url !== '/' && pathname.startsWith(link.url))
-    }
-
-    return false
-  }
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
@@ -97,12 +87,22 @@ export function HeaderClient({ header }: Props) {
   }
 
   return (
-    <header
-      className={cn(
-        'bg-background dark:bg-background sticky top-0 z-40 transition-transform duration-300',
-        !isHeaderVisible && '-translate-y-full',
-      )}
-    >
+    <>
+      {/* Search focus backdrop */}
+      <div
+        className={cn(
+          'fixed inset-0 bg-black/30 dark:bg-black/50 z-30 transition-opacity duration-200',
+          isSearchFocused ? 'opacity-100' : 'opacity-0 pointer-events-none',
+        )}
+        aria-hidden="true"
+      />
+
+      <header
+        className={cn(
+          'bg-background dark:bg-background sticky top-0 z-40 transition-transform duration-300',
+          !isHeaderVisible && '-translate-y-full',
+        )}
+      >
       {/* Row 1: Main header with prominent search */}
       <div className="border-b border-border">
         <div className="mx-auto max-w-7xl px-4 lg:px-8 py-4">
@@ -122,6 +122,8 @@ export function HeaderClient({ header }: Props) {
                   placeholder="Search for products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
                   className="w-full rounded-full border-2 border-border bg-white dark:bg-muted/20 py-3 pl-12 pr-28 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-secondary focus:outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 !shadow-none transition-colors appearance-none"
                 />
                 <button
@@ -145,10 +147,9 @@ export function HeaderClient({ header }: Props) {
                 <Bars3Icon aria-hidden="true" className="size-6" />
               </button>
 
-              {/* Desktop - Account & Cart */}
+              {/* Desktop - Account & Cart (synced loading) */}
               <div className="hidden lg:flex items-center gap-4">
-                <AccountMenu />
-                <Cart />
+                <HeaderActions />
               </div>
             </div>
           </div>
@@ -164,12 +165,7 @@ export function HeaderClient({ header }: Props) {
                 key={item.id}
                 {...item.link}
                 size="clear"
-                className={cn(
-                  'text-sm font-medium transition-colors',
-                  isNavItemActive(item)
-                    ? 'text-secondary'
-                    : 'text-foreground hover:text-secondary',
-                )}
+                className="text-sm font-medium text-foreground hover:text-secondary transition-colors"
                 appearance="link"
               />
             ))}
@@ -219,12 +215,7 @@ export function HeaderClient({ header }: Props) {
                     key={item.id}
                     {...item.link}
                     size="clear"
-                    className={cn(
-                      '-mx-3 block rounded-lg px-3 py-2 text-base font-semibold hover:bg-muted',
-                      isNavItemActive(item)
-                        ? 'text-secondary bg-muted'
-                        : 'text-foreground',
-                    )}
+                    className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold text-foreground hover:bg-muted"
                     appearance="link"
                     onClick={() => setMobileMenuOpen(false)}
                   />
@@ -233,7 +224,17 @@ export function HeaderClient({ header }: Props) {
 
               {/* Account section */}
               <div className="py-6">
-                {user ? (
+                {isLoading ? (
+                  // Loading skeleton for mobile menu - synced with header
+                  <div className="space-y-2">
+                    <div className="-mx-3 px-3 py-2.5">
+                      <div className="h-5 w-24 bg-muted rounded animate-pulse" />
+                    </div>
+                    <div className="-mx-3 px-3 py-2.5">
+                      <div className="h-5 w-32 bg-muted rounded animate-pulse" />
+                    </div>
+                  </div>
+                ) : user ? (
                   <div className="space-y-2">
                     <Link
                       href="/orders"
@@ -289,5 +290,6 @@ export function HeaderClient({ header }: Props) {
         </DialogPanel>
       </Dialog>
     </header>
+    </>
   )
 }

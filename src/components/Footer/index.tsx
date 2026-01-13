@@ -10,6 +10,7 @@ import { getCachedGlobal } from '@/utilities/getGlobals'
 import Link from 'next/link'
 import React from 'react'
 import { LogoIcon } from '@/components/icons/logo'
+import { FooterAccountLinks } from './FooterAccountLinks'
 
 const { COMPANY_NAME, SITE_NAME } = process.env
 
@@ -21,7 +22,7 @@ export async function Footer() {
   const copyrightName = COMPANY_NAME || SITE_NAME || ''
 
   return (
-    <footer className="bg-background dark:bg-background">
+    <footer className="bg-background dark:bg-background border-t border-border">
       <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 lg:py-16">
         <div className="xl:grid xl:grid-cols-3 xl:gap-8">
           {/* Logo */}
@@ -36,20 +37,12 @@ export async function Footer() {
 
           {/* Navigation */}
           <div className="mt-12 xl:col-span-2 xl:mt-0">
-            <div className="md:grid md:grid-cols-3 md:gap-8">
-              {/* Shop Column */}
+            <div className="md:grid md:grid-cols-2 md:gap-8">
+              {/* Shop Column - Categories from CMS */}
               <div>
                 <h3 className="text-sm font-semibold text-foreground">Shop</h3>
                 <ul role="list" className="mt-4 space-y-3">
-                  <li>
-                    <Link
-                      href="/products"
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      All Products
-                    </Link>
-                  </li>
-                  {menu.slice(0, 3).map((item) => (
+                  {menu.map((item) => (
                     <li key={item.id}>
                       <CMSLink
                         {...item.link}
@@ -61,59 +54,10 @@ export async function Footer() {
                 </ul>
               </div>
 
-              {/* Account Column */}
+              {/* Account Column - Dynamic based on auth */}
               <div className="mt-10 md:mt-0">
                 <h3 className="text-sm font-semibold text-foreground">Account</h3>
-                <ul role="list" className="mt-4 space-y-3">
-                  <li>
-                    <Link
-                      href="/login"
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Sign In
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/create-account"
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Create Account
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/orders"
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Orders
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Support Column */}
-              <div className="mt-10 md:mt-0">
-                <h3 className="text-sm font-semibold text-foreground">Support</h3>
-                <ul role="list" className="mt-4 space-y-3">
-                  {menu.slice(3).map((item) => (
-                    <li key={item.id}>
-                      <CMSLink
-                        {...item.link}
-                        appearance="link"
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      />
-                    </li>
-                  ))}
-                  <li>
-                    <Link
-                      href="/find-order"
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Track Order
-                    </Link>
-                  </li>
-                </ul>
+                <FooterAccountLinks />
               </div>
             </div>
           </div>
