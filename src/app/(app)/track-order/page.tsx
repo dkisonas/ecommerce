@@ -7,7 +7,7 @@ import { getPayload } from 'payload'
 import { headers as getHeaders } from 'next/headers.js'
 import configPromise from '@payload-config'
 
-export default async function FindOrderPage() {
+export default async function TrackOrderPage() {
   const headers = await getHeaders()
   const payload = await getPayload({ config: configPromise })
   const { user } = await payload.auth({ headers })
@@ -20,10 +20,10 @@ export default async function FindOrderPage() {
 }
 
 export const metadata: Metadata = {
-  description: 'Find your order with us using your email.',
+  description: 'Track your order with us using your email.',
   openGraph: mergeOpenGraph({
-    title: 'Find order',
-    url: '/find-order',
+    title: 'Track Order',
+    url: '/track-order',
   }),
-  title: 'Find order',
+  title: 'Track Order',
 }

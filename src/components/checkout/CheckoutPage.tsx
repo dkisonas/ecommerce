@@ -20,11 +20,12 @@ import { CheckoutForm } from '@/components/forms/CheckoutForm'
 import { useAddresses, useCart, usePayments } from '@payloadcms/plugin-ecommerce/client/react'
 import { CheckoutAddresses } from '@/components/checkout/CheckoutAddresses'
 import { CreateAddressModal } from '@/components/addresses/CreateAddressModal'
-import { Address } from '@/payload-types'
+import { Address, ShippingMethod } from '@/payload-types'
 import { AddressItem } from '@/components/addresses/AddressItem'
 import { toast } from 'sonner'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { CheckoutSteps } from '@/components/checkout/CheckoutSteps'
+import { ShippingMethodSelector } from '@/components/checkout/ShippingMethodSelector'
 import { CheckIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
 
 const apiKey = `${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}`
@@ -46,11 +47,26 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
   const [billingAddress, setBillingAddress] = useState<Partial<Address>>()
   const [billingAddressSameAsShipping, setBillingAddressSameAsShipping] = useState(true)
   const [isProcessingPayment, setProcessingPayment] = useState(false)
+  const [selectedShippingMethod, setSelectedShippingMethod] = useState<ShippingMethod | null>(null)
+  const [shippingCost, setShippingCost] = useState<number>(0)
 
   const cartIsEmpty = !cart || !cart.items || !cart.items.length
+  const cartSubtotal = cart?.subtotal || 0
+  const orderTotal = cartSubtotal + shippingCost
 
   const canGoToPayment = Boolean(
-    (email || user) && billingAddress && (billingAddressSameAsShipping || shippingAddress),
+    (email || user) &&
+      billingAddress &&
+      (billingAddressSameAsShipping || shippingAddress) &&
+      selectedShippingMethod,
+  )
+
+  const handleShippingSelect = useCallback(
+    (method: ShippingMethod, effectiveCost: number) => {
+      setSelectedShippingMethod(method)
+      setShippingCost(effectiveCost)
+    },
+    [],
   )
 
   // On initial load wait for addresses to be loaded and check to see if we can prefill a default one
@@ -83,6 +99,10 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
             ...(email ? { customerEmail: email } : {}),
             billingAddress,
             shippingAddress: billingAddressSameAsShipping ? billingAddress : shippingAddress,
+            // Shipping info
+            shippingMethodId: selectedShippingMethod?.id,
+            shippingCost,
+            subtotal: cartSubtotal,
           },
         })) as Record<string, unknown>
 
@@ -102,7 +122,16 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
         toast.error(errorMessage)
       }
     },
-    [billingAddress, billingAddressSameAsShipping, shippingAddress, email, initiatePayment],
+    [
+      billingAddress,
+      billingAddressSameAsShipping,
+      shippingAddress,
+      email,
+      initiatePayment,
+      selectedShippingMethod,
+      shippingCost,
+      cartSubtotal,
+    ],
   )
 
   const handleStepClick = (step: number) => {
@@ -316,6 +345,16 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
                   )}
                 </section>
 
+                {/* Shipping Method Section */}
+                <section>
+                  <h2 className="text-lg font-medium text-foreground">Shipping method</h2>
+                  <ShippingMethodSelector
+                    subtotal={cartSubtotal}
+                    selectedMethod={selectedShippingMethod}
+                    onSelect={handleShippingSelect}
+                  />
+                </section>
+
                 {/* Continue Button */}
                 <button
                   type="button"
@@ -511,10 +550,30 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
             </div>
 
             <dl className="mt-10 space-y-4 text-sm font-medium text-muted-foreground">
+              <div className="flex justify-between">
+                <dt>Subtotal</dt>
+                <dd className="text-foreground">
+                  <Price amount={cartSubtotal} />
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt>Shipping</dt>
+                <dd className="text-foreground">
+                  {selectedShippingMethod ? (
+                    shippingCost === 0 ? (
+                      <span className="text-green-600 dark:text-green-500">Free</span>
+                    ) : (
+                      <Price amount={shippingCost} />
+                    )
+                  ) : (
+                    <span className="text-muted-foreground">Select method</span>
+                  )}
+                </dd>
+              </div>
               <div className="flex justify-between border-t border-border pt-4 text-foreground">
                 <dt className="text-base">Total</dt>
                 <dd className="text-base">
-                  <Price amount={cart.subtotal || 0} />
+                  <Price amount={orderTotal} />
                 </dd>
               </div>
             </dl>

@@ -194,7 +194,7 @@ test.describe('Frontend', () => {
     await expectOrderIsDisplayed(page)
   })
 
-  test('Guest can view their order using /find-order', async ({ page }) => {
+  test('Guest can view their order using /track-order', async ({ page }) => {
     await logoutAndExpectSuccess(page)
     await addToCartAndConfirm(page, {
       productName: 'Test Product',
@@ -208,7 +208,7 @@ test.describe('Frontend', () => {
     const orderHeader = await page.locator('h1.text-sm.uppercase.font-mono > span').textContent()
     const orderNumber = orderHeader?.replace(/^Order #/, '').trim()
 
-    await page.goto(`${baseURL}/find-order`)
+    await page.goto(`${baseURL}/track-order`)
     const orderNumberInput = page.locator('input[name="orderID"]')
     const emailInput = page.locator('input[name="email"]')
     await orderNumberInput.fill(orderNumber || '')

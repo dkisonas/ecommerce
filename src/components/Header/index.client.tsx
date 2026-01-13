@@ -10,9 +10,9 @@ import { Bars3Icon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/o
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-import type { Header, User } from '@/payload-types'
+import type { Header, Setting, User } from '@/payload-types'
 import { CMSLink } from '@/components/Link'
-import { LogoIcon } from '@/components/icons/logo'
+import { Logo } from '@/components/Logo'
 import { HeaderActions } from './HeaderActions'
 import { Cart } from '@/components/Cart'
 import { cn } from '@/utilities/cn'
@@ -20,10 +20,11 @@ import { useAuth } from '@/providers/Auth'
 
 type Props = {
   header: Header
+  settings?: Setting | null
   user?: User | null
 }
 
-export function HeaderClient({ header, user }: Props) {
+export function HeaderClient({ header, settings, user }: Props) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isHeaderVisible, setIsHeaderVisible] = useState(true)
@@ -110,7 +111,7 @@ export function HeaderClient({ header, user }: Props) {
             {/* Logo - Left */}
             <Link href="/" className="shrink-0">
               <span className="sr-only">Store</span>
-              <LogoIcon className="h-8 w-auto text-foreground" />
+              <Logo settings={settings} />
             </Link>
 
             {/* PROMINENT SEARCH BAR - Center (Desktop) */}
@@ -180,7 +181,7 @@ export function HeaderClient({ header, user }: Props) {
           <div className="flex items-center justify-between">
             <Link href="/" className="-m-1.5 p-1.5" onClick={() => setMobileMenuOpen(false)}>
               <span className="sr-only">Store</span>
-              <LogoIcon className="h-8 w-auto text-foreground" />
+              <Logo settings={settings} />
             </Link>
             <button
               type="button"

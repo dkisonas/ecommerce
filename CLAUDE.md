@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pnpm install                # Install dependencies
 pnpm approve-builds         # Approve build scripts (esbuild, git-hooks, etc.)
 cp .env.example .env        # Copy and configure environment variables
-pnpm seed                   # Create demo content (admin, customer, products, orders)
+pnpm seed                   # Create demo content (everything needed to test)
 pnpm dev                    # Start dev server
 ```
 
@@ -66,19 +66,28 @@ The codebase extends Payload's `@payloadcms/plugin-ecommerce` and `@payloadcms/p
 ### Seed Script
 
 Run `pnpm seed` to create complete demo content:
-- **Admin account**: admin@example.com / admin1234
-- **Demo customer**: demo@example.com / demo1234
-- **Categories**: Clothing, Accessories, Home & Living
-- **Products**: 5 products with placeholder images from picsum.photos
-- **Orders**: 6 demo orders with various statuses (completed, processing, refund_requested, refunded, partially_refunded)
-- **Navigation**: Header and footer links configured
 
-### Simplified Content Model
+**Users:**
+- Admin: `admin@example.com` / `admin1234`
+- Customer: `demo@example.com` / `demo1234`
+- Guest order: `guest@example.com` (for track-order testing)
+
+**Content:**
+- 3 categories (Clothing, Accessories, Home & Living)
+- 5 products with images (2 with variants)
+- 3 shipping methods (Standard, Express, Free)
+- 6 CMS pages (About, Contact, Terms, Privacy, Shipping, Returns)
+- 1 contact form
+- 7 demo orders with various statuses
+- Footer with 3 columns and social links
+- Site settings (name, tagline, dark mode enabled)
+
+### Content Model
 
 - **Pages**: Title + Rich Text content (with embeddable Form blocks) + SEO
-- **Products**: Title + Description + Gallery + Price/Inventory + Categories + SEO
+- **Products**: Title + Description + Gallery + Price/Inventory + Categories + Variants + SEO
 - **Homepage** (`/`): Static page showing products - no database entry needed
-- **Products page** (`/products`): Lists all products with search and category filters
+- **Products page** (`/products`): Lists all products with category filters and sorting
 
 ### Rich Text Blocks
 
@@ -149,54 +158,50 @@ Required:
 - `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`
 
 Optional:
-- `SITE_NAME`, `COMPANY_NAME` - Used in footer/metadata
+- `SITE_NAME`, `COMPANY_NAME` - Fallback if not set in admin Settings
 - `PREVIEW_SECRET` - For draft preview functionality
 
 ## Documentation
 
+- `docs/FEATURES.md` - Complete feature documentation (how everything works)
+- `docs/SETUP.md` - Detailed setup guide
+- `docs/ECOMMERCE.md` - Ecommerce system overview (orders, refunds, shipping)
 - `docs/FORMS.md` - How to create and use forms
-- `docs/ECOMMERCE.md` - Ecommerce system overview (orders, refunds, etc.)
 - `docs/ROUTES.md` - All frontend and API routes
 - `docs/ADMIN-GUIDE.md` - Quick reference for admin tasks
-- `docs/SETUP.md` - Detailed setup guide
+- `docs/TESTING-PLAN.md` - Comprehensive testing checklist
 
 ## Project Status (January 2026)
 
-### Completed Simplification Work
+### Completed Work
 
-All simplification phases are complete. The template is now easy to use for casual users:
+The template is production-ready with these features:
 
 1. **Seed Script** - `pnpm seed` creates complete demo store
-2. **Simplified Navigation** - 3 link types (Category, Page, Custom URL)
-3. **Simplified Pages** - Rich text + FormBlock only
-4. **Simplified Products** - Clean tabs layout
-5. **Centralized Config** - Currency in `src/config/store.ts`
-6. **Forms UX** - Settings global + email notifications on submission
-7. **Documentation** - Complete docs for forms, ecommerce, routes, admin
-8. **Header UX** - Account dropdown menu, simplified layout
-9. **Order Statuses** - Added `refund_requested` status
+2. **Site Branding** - Configurable name, logo (light/dark), tagline
+3. **Dark Mode** - Toggle-able theme with admin setting to disable
+4. **Footer** - Configurable columns, links, and social media
+5. **Shipping Methods** - Flat-rate shipping with free thresholds
+6. **Checkout Flow** - Multi-step with shipping selection
+7. **Order Management** - Full lifecycle with refund system
+8. **Email Templates** - Cream/gold themed order and form emails
+9. **Track Order** - Guest order lookup via email + order ID
+10. **CMS Pages** - Dynamic pages with rich text and form blocks
+11. **Product Variants** - Color, size, etc. with inventory per variant
 
-### Key Files Added/Modified
+### Key Files
 
 | File | Purpose |
 |------|---------|
-| `src/seed/index.ts` | Seed script with products, categories, orders, users |
-| `src/globals/Settings.ts` | Store-wide settings (form submission email) |
-| `src/hooks/sendFormSubmissionEmail.ts` | Email notifications for form submissions |
-| `src/fields/navLink.ts` | Simplified navigation link field |
-| `src/components/Header/AccountMenu.tsx` | Account dropdown for desktop |
-| `src/config/store.ts` | Centralized currency config |
-
-### Next Phase: Design & UX Improvements
-
-The next phase is design work. This includes:
-- Theme consistency fixes
-- Dark mode improvements
-- Visual hierarchy in cart/checkout
-- Typography polish
-- Mobile UX improvements
-
-User should provide design reference or style direction before starting this phase.
+| `src/seed/index.ts` | Seed script with all demo content |
+| `src/globals/Settings.ts` | Site branding and settings |
+| `src/globals/Footer.ts` | Footer columns and social links |
+| `src/collections/ShippingMethods.ts` | Shipping options collection |
+| `src/collections/Orders/hooks/sendOrderConfirmationEmail.ts` | Order email |
+| `src/hooks/sendFormSubmissionEmail.ts` | Form submission email |
+| `src/components/Logo/index.tsx` | Dynamic logo component |
+| `src/components/checkout/ShippingMethodSelector.tsx` | Shipping selection |
+| `src/config/store.ts` | Currency configuration |
 
 ## TailwindPlus Components
 

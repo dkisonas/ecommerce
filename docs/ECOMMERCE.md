@@ -4,13 +4,14 @@ This guide explains how the ecommerce system works, including the collections in
 
 ## Collections Overview
 
-The ecommerce system uses 5 main collections that work together:
+The ecommerce system uses these main collections:
 
 | Collection | Purpose | Created By |
 |------------|---------|------------|
 | **Carts** | Temporary shopping carts | System (automatic) |
 | **Orders** | Completed purchases | System (after payment) |
 | **Transactions** | Payment records from Stripe | System (Stripe webhooks) |
+| **Shipping Methods** | Configurable shipping options | Admin |
 | **Refund Requests** | Customer refund requests | Customers |
 | **Refunds** | Processed refunds | Admin (after approval) |
 
@@ -19,20 +20,21 @@ The ecommerce system uses 5 main collections that work together:
 ### 1. Shopping Flow
 
 ```
-Browse Products → Add to Cart → Checkout → Payment → Order Created
+Browse Products → Add to Cart → Checkout → Select Shipping → Payment → Order Created
 ```
 
 1. Customer browses `/products` and individual product pages
 2. Items are added to a cart (stored in database + cookie)
 3. Customer proceeds to checkout at `/checkout`
 4. Customer enters shipping/billing information
-5. Payment is processed via Stripe
-6. Order is created and confirmation email sent
+5. Customer selects shipping method
+6. Payment is processed via Stripe
+7. Order is created and confirmation email sent
 
 ### 2. Order Tracking
 
 - **Logged-in customers**: View orders at `/orders`
-- **Guest customers**: Look up orders at `/find-order` using email
+- **Guest customers**: Look up orders at `/track-order` using email + order ID
 
 ### 3. Refund Flow
 
@@ -42,9 +44,10 @@ View Order → Request Refund → Admin Reviews → Refund Processed
 
 1. Customer views order at `/orders/[id]`
 2. Customer submits refund request with reason
-3. Admin reviews request in admin panel
-4. Admin approves and processes refund via Stripe
-5. Customer receives refunded amount
+3. Order status changes to `refund_requested`
+4. Admin reviews request in admin panel
+5. Admin approves and processes refund via Stripe
+6. Customer receives refunded amount
 
 ## Collection Details
 
@@ -66,15 +69,34 @@ Completed purchases with full order information.
 
 | Field | Description |
 |-------|-------------|
-| `status` | `pending`, `processing`, `completed`, `cancelled`, `refunded`, `partially_refunded` |
+| `status` | Order status (see lifecycle below) |
 | `customer` | Link to user account (if registered) |
 | `customerEmail` | Email for guest orders |
 | `items` | Snapshot of purchased products |
-| `amount` | Total amount in cents/pence |
+| `subtotal` | Items total before shipping (in pence) |
+| `shippingMethod` | Selected shipping method |
+| `shippingCost` | Shipping cost (in pence) |
+| `amount` | Total amount including shipping (in pence) |
 | `currency` | Currency code (e.g., GBP) |
+| `shippingAddress` | Delivery address |
 | `transactions` | Links to payment transactions |
 | `refunds` | Links to any processed refunds |
+| `totalRefunded` | Total amount refunded |
 | `adminNotes` | Internal notes (admin only) |
+
+### Shipping Methods
+
+Configurable shipping options shown at checkout.
+
+| Field | Description |
+|-------|-------------|
+| `title` | Display name (e.g., "Standard Delivery") |
+| `description` | Optional description |
+| `price` | Cost in pence (e.g., 399 = £3.99) |
+| `freeAbove` | Free shipping threshold (in pence) |
+| `estimatedDays` | Delivery estimate (e.g., "3-5 business days") |
+| `enabled` | Show at checkout |
+| `sortOrder` | Display order (lower = first) |
 
 ### Transactions
 
@@ -105,6 +127,7 @@ Customer-initiated refund requests awaiting admin review.
 | `status` | `pending`, `approved`, `rejected`, `processed` |
 | `customerEmail` | Customer's email |
 | `adminNotes` | Admin notes/response |
+| `rejectionReason` | Reason if rejected |
 
 ### Refunds
 
@@ -125,13 +148,20 @@ Processed refunds with Stripe details.
 
 ### Viewing Orders
 
-1. Navigate to **Ecommerce > Orders**
+1. Navigate to **Shop > Orders**
 2. Filter by status, date, or search by customer
 3. Click an order to view details
 
+### Managing Shipping Methods
+
+1. Navigate to **Shop > Shipping Methods**
+2. Edit prices, thresholds, or descriptions
+3. Enable/disable methods as needed
+4. Changes reflect immediately in checkout
+
 ### Processing Refund Requests
 
-1. Navigate to **Ecommerce > Refund Requests**
+1. Navigate to **Shop > Refund Requests**
 2. Filter by `pending` status to see new requests
 3. Review the request details and reason
 4. Click **Approve** or **Reject**
@@ -156,10 +186,10 @@ Processed refunds with Stripe details.
 
 ```
 pending → processing → completed
-                   ↓
-              cancelled
-                   ↓
-              refunded / partially_refunded
+              ↓
+         refund_requested → refunded / partially_refunded
+              ↓
+          cancelled
 ```
 
 | Status | Meaning |
@@ -167,9 +197,26 @@ pending → processing → completed
 | `pending` | Order created, payment processing |
 | `processing` | Payment confirmed, order being prepared |
 | `completed` | Order fulfilled |
-| `cancelled` | Order cancelled |
+| `refund_requested` | Customer requested refund, awaiting review |
 | `refunded` | Full refund processed |
 | `partially_refunded` | Partial refund processed |
+| `cancelled` | Order cancelled |
+
+## Shipping Method Behavior
+
+### At Checkout
+
+1. All enabled shipping methods are displayed
+2. Methods sorted by `sortOrder` (lowest first)
+3. If cart subtotal >= `freeAbove`, shipping shows as "Free"
+4. First method is auto-selected by default
+5. Order summary shows: Subtotal + Shipping = Total
+
+### In Orders
+
+- `shippingMethod` stores reference to selected method
+- `shippingCost` stores actual cost at time of order
+- If method was free due to threshold, `shippingCost` = 0
 
 ## Stripe Integration
 
@@ -177,7 +224,8 @@ pending → processing → completed
 
 The system receives these webhook events:
 - `payment_intent.succeeded` - Creates transaction, updates order
-- `charge.refunded` - Updates transaction status
+- `payment_intent.payment_failed` - Updates order status
+- `charge.refunded` - Updates transaction and order status
 
 ### Environment Variables
 
@@ -187,11 +235,17 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_xxx
 STRIPE_WEBHOOKS_SIGNING_SECRET=whsec_xxx
 ```
 
-### Webhook Endpoint
+### Webhook Endpoints
 
 Configure in Stripe Dashboard:
-- URL: `https://yourdomain.com/api/stripe/webhooks/ecommerce`
-- Events: `payment_intent.succeeded`, `charge.refunded`
+- **Ecommerce**: `https://yourdomain.com/api/stripe/webhooks/ecommerce`
+- **Refunds**: `https://yourdomain.com/api/stripe/webhooks/refunds`
+
+Events to enable:
+- `payment_intent.succeeded`
+- `payment_intent.payment_failed`
+- `charge.refunded`
+- `charge.refund.updated`
 
 ## Email Notifications
 
@@ -199,11 +253,12 @@ Configure in Stripe Dashboard:
 
 Sent automatically when order is created:
 - Recipient: Customer email
-- Content: Order number, total, items, view order link
+- Content: Order number, status, items, shipping method, costs, view order link
+- Design: Cream/gold theme matching site branding
 
-### Refund Status Email
+### Refund Status
 
-Customers can check refund status through their order page.
+Customers can check refund status through their order page at `/orders/[id]`.
 
 ## Currency Configuration
 
@@ -227,10 +282,13 @@ All amounts are stored in the smallest currency unit (e.g., pence for GBP, cents
 | File | Purpose |
 |------|---------|
 | `src/plugins/index.ts` | Ecommerce plugin configuration |
-| `src/collections/Orders.ts` | Orders collection extensions |
+| `src/collections/Orders/index.ts` | Orders collection extensions |
+| `src/collections/ShippingMethods.ts` | Shipping methods collection |
 | `src/collections/Refunds.ts` | Refunds collection |
 | `src/collections/RefundRequests.ts` | Refund requests collection |
 | `src/collections/Transactions.ts` | Transactions collection extensions |
 | `src/config/store.ts` | Store configuration (currency) |
+| `src/components/checkout/ShippingMethodSelector.tsx` | Checkout shipping UI |
+| `src/collections/Orders/hooks/sendOrderConfirmationEmail.ts` | Order email hook |
 | `src/app/(app)/api/refund-requests/route.ts` | Customer refund request API |
 | `src/app/(app)/api/refunds/process/route.ts` | Admin refund processing API |

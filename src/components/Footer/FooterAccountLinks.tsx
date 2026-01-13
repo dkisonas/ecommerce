@@ -74,7 +74,7 @@ export function FooterAccountLinks() {
       </li>
       <li>
         <Link
-          href="/find-order"
+          href="/track-order"
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           Track Order

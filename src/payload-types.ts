@@ -80,6 +80,7 @@ export interface Config {
     media: Media;
     'refund-requests': RefundRequest;
     refunds: Refund;
+    'shipping-methods': ShippingMethod;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -115,6 +116,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     'refund-requests': RefundRequestsSelect<false> | RefundRequestsSelect<true>;
     refunds: RefundsSelect<false> | RefundsSelect<true>;
+    'shipping-methods': ShippingMethodsSelect<false> | ShippingMethodsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -290,6 +292,18 @@ export interface Order {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Selected shipping method for this order
+   */
+  shippingMethod?: (number | null) | ShippingMethod;
+  /**
+   * Shipping cost at time of order (in smallest currency unit)
+   */
+  shippingCost?: number | null;
+  /**
+   * Products subtotal before shipping (in smallest currency unit)
+   */
+  subtotal?: number | null;
   /**
    * Total amount refunded for this order (in smallest currency unit)
    */
@@ -532,6 +546,43 @@ export interface Cart {
   status?: ('active' | 'purchased' | 'abandoned') | null;
   subtotal?: number | null;
   currency?: 'GBP' | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shipping-methods".
+ */
+export interface ShippingMethod {
+  id: number;
+  /**
+   * e.g., "Standard Delivery", "Express Shipping"
+   */
+  title: string;
+  /**
+   * Optional description shown to customers
+   */
+  description?: string | null;
+  /**
+   * Cost in smallest currency unit (e.g., 499 = £4.99)
+   */
+  price: number;
+  /**
+   * Free shipping for orders above this amount. Leave empty to disable.
+   */
+  freeAbove?: number | null;
+  /**
+   * e.g., "3-5 business days", "Next day"
+   */
+  estimatedDays?: string | null;
+  /**
+   * Show this method at checkout
+   */
+  enabled?: boolean | null;
+  /**
+   * Lower numbers appear first
+   */
+  sortOrder?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1033,6 +1084,10 @@ export interface PayloadLockedDocument {
         value: number | Refund;
       } | null)
     | ({
+        relationTo: 'shipping-methods';
+        value: number | ShippingMethod;
+      } | null)
+    | ({
         relationTo: 'forms';
         value: number | Form;
       } | null)
@@ -1253,6 +1308,21 @@ export interface RefundsSelect<T extends boolean = true> {
         id?: T;
       };
   refundRequest?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shipping-methods_select".
+ */
+export interface ShippingMethodsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  price?: T;
+  freeAbove?: T;
+  estimatedDays?: T;
+  enabled?: T;
+  sortOrder?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1568,6 +1638,9 @@ export interface OrdersSelect<T extends boolean = true> {
         internal?: T;
         id?: T;
       };
+  shippingMethod?: T;
+  shippingCost?: T;
+  subtotal?: T;
   totalRefunded?: T;
   refunds?: T;
   updatedAt?: T;
@@ -1686,6 +1759,45 @@ export interface Header {
  */
 export interface Footer {
   id: number;
+  /**
+   * Add up to 4 columns of links to the footer
+   */
+  columns?:
+    | {
+        title: string;
+        links?:
+          | {
+              link: {
+                type: 'category' | 'page' | 'custom';
+                newTab?: boolean | null;
+                category?: (number | null) | Category;
+                page?: (number | null) | Page;
+                url?: string | null;
+                label: string;
+              };
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Toggle social media links in the footer
+   */
+  showSocialLinks?: boolean | null;
+  /**
+   * Add social media links
+   */
+  socialLinks?:
+    | {
+        platform: 'facebook' | 'instagram' | 'twitter' | 'tiktok' | 'youtube' | 'linkedin';
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Legacy navigation items (use Columns instead)
+   */
   navItems?:
     | {
         link: {
@@ -1708,6 +1820,30 @@ export interface Footer {
  */
 export interface Setting {
   id: number;
+  /**
+   * The name of your store (shown in browser tab and emails)
+   */
+  siteName?: string | null;
+  /**
+   * Legal company name (shown in footer copyright)
+   */
+  companyName?: string | null;
+  /**
+   * Short tagline shown in the footer
+   */
+  tagline?: string | null;
+  /**
+   * Logo displayed on light backgrounds
+   */
+  logoLight?: (number | null) | Media;
+  /**
+   * Logo displayed on dark backgrounds
+   */
+  logoDark?: (number | null) | Media;
+  /**
+   * Allow users to switch between light and dark mode. When disabled, the site will always use light mode.
+   */
+  enableDarkMode?: boolean | null;
   /**
    * Email address where form submissions will be sent. Leave empty to disable email notifications.
    */
@@ -1744,6 +1880,35 @@ export interface HeaderSelect<T extends boolean = true> {
  * via the `definition` "footer_select".
  */
 export interface FooterSelect<T extends boolean = true> {
+  columns?:
+    | T
+    | {
+        title?: T;
+        links?:
+          | T
+          | {
+              link?:
+                | T
+                | {
+                    type?: T;
+                    newTab?: T;
+                    category?: T;
+                    page?: T;
+                    url?: T;
+                    label?: T;
+                  };
+              id?: T;
+            };
+        id?: T;
+      };
+  showSocialLinks?: T;
+  socialLinks?:
+    | T
+    | {
+        platform?: T;
+        url?: T;
+        id?: T;
+      };
   navItems?:
     | T
     | {
@@ -1768,6 +1933,12 @@ export interface FooterSelect<T extends boolean = true> {
  * via the `definition` "settings_select".
  */
 export interface SettingsSelect<T extends boolean = true> {
+  siteName?: T;
+  companyName?: T;
+  tagline?: T;
+  logoLight?: T;
+  logoDark?: T;
+  enableDarkMode?: T;
   formSubmissionEmail?: T;
   updatedAt?: T;
   createdAt?: T;

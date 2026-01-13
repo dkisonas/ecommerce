@@ -69,6 +69,34 @@ export const OrdersCollection: CollectionConfig = {
         },
       ],
     },
+    // Shipping fields
+    {
+      name: 'shippingMethod',
+      type: 'relationship',
+      relationTo: 'shipping-methods',
+      admin: {
+        description: 'Selected shipping method for this order',
+        readOnly: true,
+      },
+    },
+    {
+      name: 'shippingCost',
+      type: 'number',
+      defaultValue: 0,
+      admin: {
+        description: 'Shipping cost at time of order (in smallest currency unit)',
+        readOnly: true,
+      },
+    },
+    {
+      name: 'subtotal',
+      type: 'number',
+      defaultValue: 0,
+      admin: {
+        description: 'Products subtotal before shipping (in smallest currency unit)',
+        readOnly: true,
+      },
+    },
     {
       name: 'totalRefunded',
       type: 'number',

@@ -69,17 +69,18 @@ Forms are added to pages using the rich text editor's block system.
 
 ### Example Use Cases
 
-- **Contact Page**: Create a "Contact Us" form with name, email, and message fields
-- **Newsletter Signup**: Simple email field form in a dedicated section
-- **Feedback Form**: Customer feedback form on post-purchase pages
+- **Contact Page**: Create a "Contact Us" form with name, email, subject, and message fields
+- **Newsletter Signup**: Simple email field form
+- **Feedback Form**: Customer feedback with rating and comments
 
 ## Email Notifications
 
 ### Configuring the Recipient Email
 
 1. Navigate to **Settings > Settings** in the admin panel
-2. Enter the **Form Submission Email** address
-3. Save the settings
+2. Go to the **Notifications** tab
+3. Enter the **Form Submission Email** address
+4. Save the settings
 
 All form submissions will send notification emails to this address.
 
@@ -88,8 +89,9 @@ All form submissions will send notification emails to this address.
 The notification email includes:
 - Form name
 - Submission timestamp
-- All submitted field data in a table format
+- All submitted field data in a styled table
 - Link to view the submission in the admin panel
+- Cream/gold themed design matching the site
 
 ### Disabling Email Notifications
 
@@ -107,6 +109,14 @@ Each submission record contains:
 - Reference to the form
 - Submission data (field name/value pairs)
 - Timestamp
+
+## Demo Contact Form
+
+The seed script (`pnpm seed`) creates a demo contact form with:
+- Name (text, required)
+- Email (email, required)
+- Subject (text, required)
+- Message (textarea, required)
 
 ## Technical Notes
 

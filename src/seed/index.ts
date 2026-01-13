@@ -1,5 +1,5 @@
 import type { Payload } from 'payload'
-import type { Category, Product, VariantType, VariantOption } from '@/payload-types'
+import type { Category, Product, VariantType, VariantOption, ShippingMethod } from '@/payload-types'
 
 /**
  * Seed script - clears demo content and recreates it
@@ -31,8 +31,25 @@ export async function seed(payload: Payload): Promise<void> {
   await createProductVariants(payload, products, variantTypes, mediaIds)
   console.log('✅ Created product variants')
 
-  await createNavigation(payload)
+  // Create shipping methods
+  const shippingMethods = await createShippingMethods(payload)
+  console.log(`✅ Created ${shippingMethods.length} shipping methods`)
+
+  // Create settings
+  await createSettings(payload)
+  console.log('✅ Created site settings')
+
+  // Create navigation (header + footer with columns)
+  await createNavigation(payload, categories)
   console.log('✅ Created navigation')
+
+  // Create CMS pages
+  const pages = await createPages(payload)
+  console.log(`✅ Created ${pages.length} CMS pages`)
+
+  // Create contact form
+  await createContactForm(payload)
+  console.log('✅ Created contact form')
 
   // Create admin account
   await createAdminAccount(payload)
@@ -42,8 +59,12 @@ export async function seed(payload: Payload): Promise<void> {
   const demoCustomer = await createDemoCustomer(payload)
   console.log('✅ Created demo customer (demo@example.com / demo1234)')
 
-  await createDemoOrders(payload, demoCustomer.id, products)
+  await createDemoOrders(payload, demoCustomer.id, products, shippingMethods)
   console.log('✅ Created demo orders with various statuses')
+
+  // Create guest order for track-order testing
+  await createGuestOrder(payload, products, shippingMethods)
+  console.log('✅ Created guest order (guest@example.com) for track-order testing')
 
   console.log('🎉 Seed complete!')
 }
@@ -53,10 +74,14 @@ const DEMO_SLUGS = {
   products: ['classic-t-shirt', 'leather-wallet', 'ceramic-mug', 'canvas-tote-bag', 'scented-candle'],
   categories: ['clothing', 'accessories', 'home-and-living'],
   variantTypes: ['color', 'size'],
+  pages: ['about', 'contact', 'terms-conditions', 'privacy-policy', 'shipping-policy', 'returns-refunds'],
+  shippingMethods: ['Standard Delivery', 'Express Delivery', 'Free Shipping'],
 }
 
 const DEMO_CUSTOMER_EMAIL = 'demo@example.com'
+const DEMO_GUEST_EMAIL = 'guest@example.com'
 const DEMO_ADMIN_EMAIL = 'admin@example.com'
+const DEMO_FORM_TITLE = 'Contact Form'
 
 async function clearDemoContent(payload: Payload) {
   // Delete demo refunds first (has foreign key to orders)
@@ -66,6 +91,7 @@ async function clearDemoContent(payload: Payload) {
       where: {
         or: [
           { 'order.customerEmail': { equals: DEMO_CUSTOMER_EMAIL } },
+          { 'order.customerEmail': { equals: DEMO_GUEST_EMAIL } },
         ],
       },
     })
@@ -78,7 +104,10 @@ async function clearDemoContent(payload: Payload) {
     await payload.delete({
       collection: 'transactions',
       where: {
-        customerEmail: { equals: DEMO_CUSTOMER_EMAIL },
+        or: [
+          { customerEmail: { equals: DEMO_CUSTOMER_EMAIL } },
+          { customerEmail: { equals: DEMO_GUEST_EMAIL } },
+        ],
       },
     })
   } catch {
@@ -90,19 +119,79 @@ async function clearDemoContent(payload: Payload) {
     await payload.delete({
       collection: 'refund-requests',
       where: {
-        customerEmail: { equals: DEMO_CUSTOMER_EMAIL },
+        or: [
+          { customerEmail: { equals: DEMO_CUSTOMER_EMAIL } },
+          { customerEmail: { equals: DEMO_GUEST_EMAIL } },
+        ],
       },
     })
   } catch {
     // Ignore errors
   }
 
-  // Delete demo orders
+  // Delete demo orders (both customer and guest)
   try {
     await payload.delete({
       collection: 'orders',
       where: {
-        customerEmail: { equals: DEMO_CUSTOMER_EMAIL },
+        or: [
+          { customerEmail: { equals: DEMO_CUSTOMER_EMAIL } },
+          { customerEmail: { equals: DEMO_GUEST_EMAIL } },
+        ],
+      },
+    })
+  } catch {
+    // Ignore errors
+  }
+
+  // Delete demo shipping methods
+  try {
+    await payload.delete({
+      collection: 'shipping-methods',
+      where: {
+        title: { in: DEMO_SLUGS.shippingMethods },
+      },
+    })
+  } catch {
+    // Ignore errors
+  }
+
+  // Delete demo pages
+  try {
+    await payload.delete({
+      collection: 'pages',
+      where: {
+        slug: { in: DEMO_SLUGS.pages },
+      },
+    })
+  } catch {
+    // Ignore errors
+  }
+
+  // Delete demo form submissions first
+  try {
+    const contactForm = await payload.find({
+      collection: 'forms',
+      where: { title: { equals: DEMO_FORM_TITLE } },
+    })
+    if (contactForm.docs.length > 0) {
+      await payload.delete({
+        collection: 'form-submissions',
+        where: {
+          form: { equals: contactForm.docs[0].id },
+        },
+      })
+    }
+  } catch {
+    // Ignore errors
+  }
+
+  // Delete demo forms
+  try {
+    await payload.delete({
+      collection: 'forms',
+      where: {
+        title: { equals: DEMO_FORM_TITLE },
       },
     })
   } catch {
@@ -332,19 +421,12 @@ async function createProducts(
   return createdProducts
 }
 
-async function createNavigation(payload: Payload) {
-  // Get category IDs for navigation links
-  const categories = await payload.find({
-    collection: 'categories',
-    where: {
-      slug: { in: DEMO_SLUGS.categories },
-    },
-  })
-
-  const categoryNavItems = categories.docs.map((cat) => ({
+async function createNavigation(payload: Payload, categories: Category[]) {
+  const categoryNavItems = categories.map((cat) => ({
     link: { type: 'category' as const, category: cat.id, label: cat.title },
   }))
 
+  // Header navigation
   await payload.updateGlobal({
     slug: 'header',
     data: {
@@ -355,11 +437,41 @@ async function createNavigation(payload: Payload) {
     },
   })
 
+  // Footer with columns and social links
   await payload.updateGlobal({
     slug: 'footer',
     data: {
-      navItems: [
-        { link: { type: 'custom' as const, url: '/products', label: 'Products' } },
+      columns: [
+        {
+          title: 'Shop',
+          links: [
+            { link: { type: 'custom' as const, url: '/products', label: 'All Products' } },
+            ...categoryNavItems.map((item) => ({ link: item.link })),
+          ],
+        },
+        {
+          title: 'Support',
+          links: [
+            { link: { type: 'page' as const, page: null, label: 'Contact Us', url: '/contact' } },
+            { link: { type: 'page' as const, page: null, label: 'Shipping Policy', url: '/shipping-policy' } },
+            { link: { type: 'page' as const, page: null, label: 'Returns & Refunds', url: '/returns-refunds' } },
+            { link: { type: 'custom' as const, url: '/track-order', label: 'Track Order' } },
+          ],
+        },
+        {
+          title: 'Company',
+          links: [
+            { link: { type: 'page' as const, page: null, label: 'About Us', url: '/about' } },
+            { link: { type: 'page' as const, page: null, label: 'Privacy Policy', url: '/privacy-policy' } },
+            { link: { type: 'page' as const, page: null, label: 'Terms & Conditions', url: '/terms-conditions' } },
+          ],
+        },
+      ],
+      showSocialLinks: true,
+      socialLinks: [
+        { platform: 'instagram', url: 'https://instagram.com/demostore' },
+        { platform: 'facebook', url: 'https://facebook.com/demostore' },
+        { platform: 'twitter', url: 'https://twitter.com/demostore' },
       ],
     },
   })
@@ -477,7 +589,7 @@ async function createProductVariants(
   payload: Payload,
   products: Product[],
   variantTypes: VariantTypeWithOptions[],
-  mediaIds: Record<string, number>,
+  _mediaIds: Record<string, number>,
 ) {
   const tshirt = products.find((p) => p.slug === 'classic-t-shirt')
   const candle = products.find((p) => p.slug === 'scented-candle')
@@ -595,12 +707,21 @@ async function createProductVariants(
   }
 }
 
-async function createDemoOrders(payload: Payload, customerId: number, products: Product[]) {
+async function createDemoOrders(
+  payload: Payload,
+  customerId: number,
+  products: Product[],
+  shippingMethods: ShippingMethod[],
+) {
   const tshirt = products.find((p) => p.slug === 'classic-t-shirt')
   const wallet = products.find((p) => p.slug === 'leather-wallet')
   const mug = products.find((p) => p.slug === 'ceramic-mug')
   const tote = products.find((p) => p.slug === 'canvas-tote-bag')
   const candle = products.find((p) => p.slug === 'scented-candle')
+
+  const standardShipping = shippingMethods.find((m) => m.title === 'Standard Delivery')
+  const expressShipping = shippingMethods.find((m) => m.title === 'Express Delivery')
+  const freeShipping = shippingMethods.find((m) => m.title === 'Free Shipping')
 
   const demoAddress = {
     firstName: 'Demo',
@@ -611,7 +732,7 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
     country: 'GB',
   }
 
-  // 1. Completed order (successful purchase)
+  // 1. Completed order (successful purchase with standard shipping)
   const completedOrder = await payload.create({
     collection: 'orders',
     context: { skipValidation: true },
@@ -619,7 +740,10 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
       customer: customerId,
       customerEmail: DEMO_CUSTOMER_EMAIL,
       status: 'completed',
-      amount: 4000, // £40.00
+      subtotal: 4000, // £40.00 subtotal
+      shippingMethod: standardShipping?.id,
+      shippingCost: 399, // £3.99
+      amount: 4399, // £43.99 total
       currency: 'GBP',
       items: [
         { product: tshirt?.id, quantity: 1 },
@@ -630,7 +754,7 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
   })
   console.log(`  📦 Created completed order #${completedOrder.id}`)
 
-  // 2. Processing order (payment received, being prepared)
+  // 2. Processing order (with express shipping)
   const processingOrder = await payload.create({
     collection: 'orders',
     context: { skipValidation: true },
@@ -638,7 +762,10 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
       customer: customerId,
       customerEmail: DEMO_CUSTOMER_EMAIL,
       status: 'processing',
-      amount: 4500, // £45.00
+      subtotal: 4500, // £45.00 subtotal
+      shippingMethod: expressShipping?.id,
+      shippingCost: 799, // £7.99
+      amount: 5299, // £52.99 total
       currency: 'GBP',
       items: [{ product: wallet?.id, quantity: 1 }],
       shippingAddress: demoAddress,
@@ -646,7 +773,7 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
   })
   console.log(`  📦 Created processing order #${processingOrder.id}`)
 
-  // 3. Order with pending refund request
+  // 3. Order with pending refund request (free shipping over threshold)
   const pendingRefundOrder = await payload.create({
     collection: 'orders',
     context: { skipValidation: true },
@@ -654,7 +781,10 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
       customer: customerId,
       customerEmail: DEMO_CUSTOMER_EMAIL,
       status: 'refund_requested',
-      amount: 3000, // £30.00
+      subtotal: 3000, // £30.00 subtotal
+      shippingMethod: standardShipping?.id,
+      shippingCost: 0, // Free (over £30 threshold)
+      amount: 3000, // £30.00 total
       currency: 'GBP',
       items: [{ product: tote?.id, quantity: 1 }],
       shippingAddress: demoAddress,
@@ -677,7 +807,7 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
   })
   console.log(`  📦 Created order #${pendingRefundOrder.id} with pending refund request`)
 
-  // 4. Order with rejected refund request
+  // 4. Order with rejected refund request (with free shipping promo)
   const rejectedRefundOrder = await payload.create({
     collection: 'orders',
     context: { skipValidation: true },
@@ -685,7 +815,10 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
       customer: customerId,
       customerEmail: DEMO_CUSTOMER_EMAIL,
       status: 'completed',
-      amount: 2000, // £20.00
+      subtotal: 2000, // £20.00 subtotal
+      shippingMethod: freeShipping?.id,
+      shippingCost: 0,
+      amount: 2000, // £20.00 total
       currency: 'GBP',
       items: [{ product: candle?.id, quantity: 1 }],
       shippingAddress: demoAddress,
@@ -718,16 +851,19 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
       customer: customerId,
       customerEmail: DEMO_CUSTOMER_EMAIL,
       status: 'refunded',
-      amount: 2500, // £25.00
+      subtotal: 2500, // £25.00 subtotal
+      shippingMethod: standardShipping?.id,
+      shippingCost: 399,
+      amount: 2899, // £28.99 total
       currency: 'GBP',
-      totalRefunded: 2500,
+      totalRefunded: 2899,
       items: [{ product: tshirt?.id, quantity: 1 }],
       shippingAddress: demoAddress,
     },
   })
   console.log(`  📦 Created refunded order #${refundedOrder.id}`)
 
-  // 6. Partially refunded order
+  // 6. Partially refunded order (with express shipping)
   const partialRefundOrder = await payload.create({
     collection: 'orders',
     context: { skipValidation: true },
@@ -735,7 +871,10 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
       customer: customerId,
       customerEmail: DEMO_CUSTOMER_EMAIL,
       status: 'partially_refunded',
-      amount: 5500, // £55.00 (£25 tshirt + £30 tote)
+      subtotal: 5500, // £55.00 subtotal
+      shippingMethod: expressShipping?.id,
+      shippingCost: 799,
+      amount: 6299, // £62.99 total
       currency: 'GBP',
       totalRefunded: 2500, // Only tshirt refunded
       items: [
@@ -746,4 +885,356 @@ async function createDemoOrders(payload: Payload, customerId: number, products: 
     },
   })
   console.log(`  📦 Created partially refunded order #${partialRefundOrder.id}`)
+}
+
+async function createShippingMethods(payload: Payload): Promise<ShippingMethod[]> {
+  const methods = [
+    {
+      title: 'Standard Delivery',
+      description: 'Delivered by Royal Mail',
+      price: 399, // £3.99
+      freeAbove: 3000, // Free over £30
+      estimatedDays: '3-5 business days',
+      enabled: true,
+      sortOrder: 1,
+    },
+    {
+      title: 'Express Delivery',
+      description: 'Next day delivery by DPD',
+      price: 799, // £7.99
+      freeAbove: null, // Never free
+      estimatedDays: 'Next business day',
+      enabled: true,
+      sortOrder: 2,
+    },
+    {
+      title: 'Free Shipping',
+      description: 'Economy delivery - promotional offer',
+      price: 0,
+      freeAbove: null,
+      estimatedDays: '5-7 business days',
+      enabled: true,
+      sortOrder: 3,
+    },
+  ]
+
+  const created: ShippingMethod[] = []
+  for (const method of methods) {
+    const shippingMethod = await payload.create({
+      collection: 'shipping-methods',
+      data: method,
+    })
+    created.push(shippingMethod)
+  }
+
+  return created
+}
+
+async function createSettings(payload: Payload) {
+  await payload.updateGlobal({
+    slug: 'settings',
+    data: {
+      siteName: 'Demo Store',
+      companyName: 'Demo Store Ltd',
+      tagline: 'Quality products, exceptional service',
+      enableDarkMode: true,
+      formSubmissionEmail: 'admin@example.com',
+    },
+  })
+}
+
+async function createPages(payload: Payload) {
+  const pagesData = [
+    {
+      title: 'About Us',
+      slug: 'about',
+      content: createRichTextContent([
+        { type: 'heading', level: 1, text: 'About Demo Store' },
+        {
+          type: 'paragraph',
+          text: 'Welcome to Demo Store! We are a passionate team dedicated to bringing you the best quality products at affordable prices.',
+        },
+        { type: 'heading', level: 2, text: 'Our Mission' },
+        {
+          type: 'paragraph',
+          text: 'Our mission is to provide exceptional products and outstanding customer service. We believe in building lasting relationships with our customers.',
+        },
+        { type: 'heading', level: 2, text: 'Our Story' },
+        {
+          type: 'paragraph',
+          text: 'Founded in 2024, Demo Store started as a small family business with a simple idea: offer great products with honest service. Today, we continue to uphold those values.',
+        },
+      ]),
+    },
+    {
+      title: 'Contact Us',
+      slug: 'contact',
+      content: createRichTextContent([
+        { type: 'heading', level: 1, text: 'Contact Us' },
+        {
+          type: 'paragraph',
+          text: "We'd love to hear from you! Fill out the form below and we'll get back to you as soon as possible.",
+        },
+      ]),
+    },
+    {
+      title: 'Terms & Conditions',
+      slug: 'terms-conditions',
+      content: createRichTextContent([
+        { type: 'heading', level: 1, text: 'Terms & Conditions' },
+        {
+          type: 'paragraph',
+          text: 'Please read these terms and conditions carefully before using our services.',
+        },
+        { type: 'heading', level: 2, text: '1. Introduction' },
+        {
+          type: 'paragraph',
+          text: 'These terms govern your use of our website and services. By using our site, you agree to these terms.',
+        },
+        { type: 'heading', level: 2, text: '2. Orders' },
+        {
+          type: 'paragraph',
+          text: 'All orders are subject to availability. We reserve the right to refuse any order.',
+        },
+        { type: 'heading', level: 2, text: '3. Pricing' },
+        {
+          type: 'paragraph',
+          text: 'All prices are in GBP and include VAT where applicable. We reserve the right to change prices without notice.',
+        },
+      ]),
+    },
+    {
+      title: 'Privacy Policy',
+      slug: 'privacy-policy',
+      content: createRichTextContent([
+        { type: 'heading', level: 1, text: 'Privacy Policy' },
+        {
+          type: 'paragraph',
+          text: 'Your privacy is important to us. This policy explains how we collect, use, and protect your data.',
+        },
+        { type: 'heading', level: 2, text: 'Information We Collect' },
+        {
+          type: 'paragraph',
+          text: 'We collect information you provide directly, such as name, email, and shipping address when you place an order.',
+        },
+        { type: 'heading', level: 2, text: 'How We Use Your Information' },
+        {
+          type: 'paragraph',
+          text: 'We use your information to process orders, communicate with you, and improve our services.',
+        },
+        { type: 'heading', level: 2, text: 'Data Security' },
+        {
+          type: 'paragraph',
+          text: 'We implement appropriate security measures to protect your personal information.',
+        },
+      ]),
+    },
+    {
+      title: 'Shipping Policy',
+      slug: 'shipping-policy',
+      content: createRichTextContent([
+        { type: 'heading', level: 1, text: 'Shipping Policy' },
+        {
+          type: 'paragraph',
+          text: 'We offer several shipping options to meet your needs.',
+        },
+        { type: 'heading', level: 2, text: 'Delivery Options' },
+        {
+          type: 'paragraph',
+          text: 'Standard Delivery: 3-5 business days (£3.99, free over £30)',
+        },
+        {
+          type: 'paragraph',
+          text: 'Express Delivery: Next business day (£7.99)',
+        },
+        { type: 'heading', level: 2, text: 'Processing Time' },
+        {
+          type: 'paragraph',
+          text: 'Orders are typically processed within 1-2 business days.',
+        },
+        { type: 'heading', level: 2, text: 'Tracking' },
+        {
+          type: 'paragraph',
+          text: 'You will receive tracking information once your order has been dispatched.',
+        },
+      ]),
+    },
+    {
+      title: 'Returns & Refunds',
+      slug: 'returns-refunds',
+      content: createRichTextContent([
+        { type: 'heading', level: 1, text: 'Returns & Refunds' },
+        {
+          type: 'paragraph',
+          text: "We want you to be completely satisfied with your purchase. If you're not happy, we're here to help.",
+        },
+        { type: 'heading', level: 2, text: 'Return Policy' },
+        {
+          type: 'paragraph',
+          text: 'You may return most items within 30 days of delivery for a full refund. Items must be unused and in original packaging.',
+        },
+        { type: 'heading', level: 2, text: 'How to Request a Refund' },
+        {
+          type: 'paragraph',
+          text: "Log into your account, go to your orders, and click 'Request Refund' on the relevant order.",
+        },
+        { type: 'heading', level: 2, text: 'Refund Processing' },
+        {
+          type: 'paragraph',
+          text: 'Refunds are typically processed within 5-7 business days after we receive and inspect the returned item.',
+        },
+      ]),
+    },
+  ]
+
+  const created = []
+  for (const pageData of pagesData) {
+    const page = await payload.create({
+      collection: 'pages',
+      data: {
+        title: pageData.title,
+        slug: pageData.slug,
+        content: pageData.content,
+        _status: 'published',
+      },
+    })
+    created.push(page)
+  }
+
+  return created
+}
+
+// Helper to create rich text content structure for Lexical
+type ContentBlock =
+  | { type: 'heading'; level: 1 | 2 | 3 | 4; text: string }
+  | { type: 'paragraph'; text: string }
+
+function createRichTextContent(blocks: ContentBlock[]) {
+  return {
+    root: {
+      type: 'root',
+      children: blocks.map((block) => {
+        if (block.type === 'heading') {
+          return {
+            type: 'heading',
+            tag: `h${block.level}`,
+            children: [{ type: 'text', text: block.text, version: 1 }],
+            direction: 'ltr' as const,
+            format: '' as const,
+            indent: 0,
+            version: 1,
+          }
+        }
+        return {
+          type: 'paragraph',
+          children: [{ type: 'text', text: block.text, version: 1 }],
+          direction: 'ltr' as const,
+          format: '' as const,
+          indent: 0,
+          version: 1,
+          textFormat: 0,
+          textStyle: '',
+        }
+      }),
+      direction: 'ltr' as const,
+      format: '' as const,
+      indent: 0,
+      version: 1,
+    },
+  }
+}
+
+async function createContactForm(payload: Payload) {
+  const form = await payload.create({
+    collection: 'forms',
+    data: {
+      title: DEMO_FORM_TITLE,
+      fields: [
+        {
+          blockType: 'text',
+          name: 'name',
+          label: 'Your Name',
+          required: true,
+          width: 50,
+        },
+        {
+          blockType: 'email',
+          name: 'email',
+          label: 'Email Address',
+          required: true,
+          width: 50,
+        },
+        {
+          blockType: 'text',
+          name: 'subject',
+          label: 'Subject',
+          required: true,
+          width: 100,
+        },
+        {
+          blockType: 'textarea',
+          name: 'message',
+          label: 'Your Message',
+          required: true,
+          width: 100,
+        },
+      ],
+      submitButtonLabel: 'Send Message',
+      confirmationType: 'message',
+      confirmationMessage: createRichTextContent([
+        {
+          type: 'paragraph',
+          text: "Thank you for your message! We'll get back to you as soon as possible.",
+        },
+      ]),
+    },
+  })
+
+  return form
+}
+
+async function createGuestOrder(
+  payload: Payload,
+  products: Product[],
+  shippingMethods: ShippingMethod[],
+) {
+  const wallet = products.find((p) => p.slug === 'leather-wallet')
+  const mug = products.find((p) => p.slug === 'ceramic-mug')
+  const standardShipping = shippingMethods.find((m) => m.title === 'Standard Delivery')
+
+  const guestAddress = {
+    firstName: 'Guest',
+    lastName: 'User',
+    addressLine1: '456 Guest Lane',
+    city: 'Manchester',
+    postcode: 'M1 1AA',
+    country: 'GB',
+  }
+
+  // Guest order (no customer ID, just email) for track-order testing
+  const guestOrder = await payload.create({
+    collection: 'orders',
+    context: { skipValidation: true },
+    data: {
+      customer: null, // No linked customer account
+      customerEmail: DEMO_GUEST_EMAIL,
+      status: 'processing',
+      subtotal: 6000, // £60.00 subtotal
+      shippingMethod: standardShipping?.id,
+      shippingCost: 0, // Free (over £30)
+      amount: 6000, // £60.00 total
+      currency: 'GBP',
+      items: [
+        { product: wallet?.id, quantity: 1 },
+        { product: mug?.id, quantity: 1 },
+      ],
+      shippingAddress: guestAddress,
+    },
+  })
+
+  console.log(
+    `  📦 Created guest order #${guestOrder.id} - test track-order with email: ${DEMO_GUEST_EMAIL}`,
+  )
+
+  return guestOrder
 }

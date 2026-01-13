@@ -3,13 +3,27 @@ import React from 'react'
 
 import { defaultTheme, themeLocalStorageKey } from '../shared'
 
-export const InitTheme: React.FC = () => {
+type InitThemeProps = {
+  enableDarkMode?: boolean
+}
+
+export const InitTheme: React.FC<InitThemeProps> = ({ enableDarkMode = true }) => {
+  // If dark mode is disabled, always use light theme
+  const forceLightMode = enableDarkMode === false
+
   return (
     // eslint-disable-next-line @next/next/no-before-interactive-script-outside-document
     <Script
       dangerouslySetInnerHTML={{
         __html: `
   (function () {
+    var forceLightMode = ${forceLightMode};
+
+    if (forceLightMode) {
+      document.documentElement.setAttribute('data-theme', 'light');
+      return;
+    }
+
     function getImplicitPreference() {
       var mediaQuery = '(prefers-color-scheme: dark)'
       var mql = window.matchMedia(mediaQuery)

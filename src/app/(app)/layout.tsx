@@ -6,6 +6,7 @@ import { Header } from '@/components/Header'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 import { Providers } from '@/providers'
 import { InitTheme } from '@/providers/Theme/InitTheme'
+import { getCachedGlobal } from '@/utilities/getGlobals'
 import configPromise from '@payload-config'
 import { GeistMono } from 'geist/font/mono'
 import { GeistSans } from 'geist/font/sans'
@@ -41,11 +42,12 @@ const twitterSite = TWITTER_SITE ? ensureStartsWith(TWITTER_SITE, 'https://') : 
 } */
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const headers = await getHeaders()
+  const [headers, settings] = await Promise.all([getHeaders(), getCachedGlobal('settings', 2)()])
   const payload = await getPayload({ config: configPromise })
   const { user } = await payload.auth({ headers })
 
   const isAdmin = user?.roles && Array.isArray(user?.roles) && user?.roles.includes('admin')
+  const enableDarkMode = settings?.enableDarkMode !== false
 
   return (
     <html
@@ -54,7 +56,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       suppressHydrationWarning
     >
       <head>
-        <InitTheme />
+        <InitTheme enableDarkMode={enableDarkMode} />
         <link href="/favicon.ico" rel="icon" sizes="32x32" />
         <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
       </head>
