@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import { generateMeta } from '@/utilities/generateMeta'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { draftMode } from 'next/headers'
@@ -40,17 +41,32 @@ export default async function Page({ params }: Args) {
   }
 
   return (
-    <article className="pt-16 pb-24">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">{page.title}</h1>
-      </div>
-
-      {page.content && (
-        <div className="mb-12">
-          <RichText data={page.content} enableGutter={false} />
+    <div className="bg-background dark:bg-background">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+        {/* Breadcrumbs */}
+        <div className="py-6">
+          <Breadcrumbs
+            items={[{ name: page.title, href: `/${slug}`, current: true }]}
+          />
         </div>
-      )}
-    </article>
+
+        {/* Page Header */}
+        <div className="pb-8 border-b border-border">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            {page.title}
+          </h1>
+        </div>
+
+        {/* Page Content */}
+        {page.content && (
+          <div className="py-12">
+            <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-a:text-secondary prose-strong:text-foreground">
+              <RichText data={page.content} enableGutter={false} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
