@@ -1,13 +1,12 @@
-// TailwindPlus styled products page with sidebar filters
+// TailwindPlus styled products page with mobile filter drawer
 // Adapted for: React, Tailwind v4, dark mode support
 
 import { ProductGridItem } from '@/components/ProductGridItem'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CategoryFilter } from '@/components/CategoryFilter'
+import { ProductFiltersBar } from '@/components/ProductFiltersBar'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import Link from 'next/link'
-import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/20/solid'
 
 export const metadata = {
   description: 'Search for products in the store.',
@@ -128,8 +127,8 @@ export default async function ShopPage({ searchParams }: Props) {
         </div>
 
         {/* Main content with sidebar */}
-        <div className="pt-12 pb-16 lg:grid lg:grid-cols-4 lg:gap-x-8">
-          {/* Sidebar filters */}
+        <div className="pt-8 pb-16 lg:grid lg:grid-cols-4 lg:gap-x-8">
+          {/* Sidebar filters - Desktop only */}
           <aside className="hidden lg:block">
             <h2 className="sr-only">Filters</h2>
             <CategoryFilter
@@ -144,98 +143,21 @@ export default async function ShopPage({ searchParams }: Props) {
 
           {/* Product grid area */}
           <div className="lg:col-span-3">
-            {/* Active filters and sort bar */}
-            <div className="flex flex-col gap-4 pb-6 border-b border-border sm:flex-row sm:items-center sm:justify-between">
-              {/* Active filters */}
-              <div className="flex flex-wrap items-center gap-2">
-                {searchValue && (
-                  <Link
-                    href={`/products?${new URLSearchParams({
-                      ...(selectedCategories.length > 0 ? { categories: selectedCategories.join(',') } : {}),
-                      ...(sort ? { sort: String(sort) } : {}),
-                    }).toString()}`}
-                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-sm text-foreground hover:bg-muted transition-colors"
-                  >
-                    Search: &quot;{searchValue}&quot;
-                    <XMarkIcon className="size-4" />
-                  </Link>
-                )}
-                {selectedCategoryNames.map((name, idx) => (
-                  <Link
-                    key={selectedCategories[idx]}
-                    href={`/products?${new URLSearchParams({
-                      ...(searchValue ? { q: String(searchValue) } : {}),
-                      ...(selectedCategories.length > 1
-                        ? { categories: selectedCategories.filter((c) => c !== selectedCategories[idx]).join(',') }
-                        : {}),
-                      ...(sort ? { sort: String(sort) } : {}),
-                    }).toString()}`}
-                    className="inline-flex items-center gap-1 rounded-full border border-secondary bg-secondary/10 px-3 py-1 text-sm text-secondary hover:bg-secondary/20 transition-colors"
-                  >
-                    {name}
-                    <XMarkIcon className="size-4" />
-                  </Link>
-                ))}
-                {(searchValue || selectedCategories.length > 0) && (
-                  <span className="text-sm text-muted-foreground ml-2">
-                    {products.docs.length} {resultsText}
-                  </span>
-                )}
-              </div>
-
-              {/* Sort dropdown */}
-              <div className="relative group shrink-0">
-                <button
-                  type="button"
-                  className="group inline-flex items-center justify-center text-sm font-medium text-foreground hover:text-secondary transition-colors"
-                >
-                  Sort: {currentSortName}
-                  <ChevronDownIcon
-                    aria-hidden="true"
-                    className="-mr-1 ml-1 size-5 shrink-0 text-muted-foreground group-hover:text-secondary"
-                  />
-                </button>
-                <div className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-background dark:bg-card shadow-lg ring-1 ring-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                  <div className="py-1">
-                    {sortOptions.map((option) => (
-                      <Link
-                        key={option.value}
-                        href={`/products?${new URLSearchParams({
-                          ...(searchValue ? { q: String(searchValue) } : {}),
-                          ...(selectedCategories.length > 0 ? { categories: selectedCategories.join(',') } : {}),
-                          sort: option.value,
-                        }).toString()}`}
-                        className={`block px-4 py-2 text-sm hover:bg-muted transition-colors ${
-                          currentSort === option.value ? 'font-medium text-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        {option.name}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile category filter button */}
-            <div className="lg:hidden py-4">
-              <details className="group">
-                <summary className="flex cursor-pointer items-center justify-between text-sm font-medium text-foreground">
-                  <span>Filter by Category</span>
-                  <ChevronDownIcon className="size-5 text-muted-foreground group-open:rotate-180 transition-transform" />
-                </summary>
-                <div className="mt-4 pb-4 border-b border-border">
-                  <CategoryFilter
-                    categories={categoriesResult.docs.map((c) => ({
-                      id: String(c.id),
-                      title: c.title,
-                      slug: c.slug,
-                    }))}
-                    selectedCategories={selectedCategories}
-                  />
-                </div>
-              </details>
-            </div>
+            {/* Filter bar with sort dropdown and mobile filter button */}
+            <ProductFiltersBar
+              categories={categoriesResult.docs.map((c) => ({
+                id: String(c.id),
+                title: c.title,
+                slug: c.slug,
+              }))}
+              selectedCategories={selectedCategories}
+              selectedCategoryNames={selectedCategoryNames}
+              sortOptions={sortOptions}
+              currentSort={currentSort}
+              currentSortName={currentSortName}
+              searchValue={searchValue ? String(searchValue) : undefined}
+              resultsCount={products.docs.length}
+            />
 
             {/* Products grid */}
             <div className="pt-6">
@@ -249,7 +171,7 @@ export default async function ShopPage({ searchParams }: Props) {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:gap-x-6 sm:gap-y-8 lg:grid-cols-3 xl:gap-x-8">
                   {products.docs.map((product) => (
                     <ProductGridItem key={product.id} product={product} />
                   ))}

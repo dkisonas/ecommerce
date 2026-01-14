@@ -17,18 +17,20 @@ export const ProductGridItem: React.FC<Props> = ({ product }) => {
   const { gallery, priceInGBP, title, slug } = product
 
   let price = priceInGBP
+  let hasVariants = false
 
   const variants = product.variants?.docs
 
-  if (variants && variants.length > 0) {
-    const variant = variants[0]
-    if (
-      variant &&
-      typeof variant === 'object' &&
-      variant?.priceInGBP &&
-      typeof variant.priceInGBP === 'number'
-    ) {
-      price = variant.priceInGBP
+  // For products with variants, find the lowest price
+  if (product.enableVariants && variants && variants.length > 0) {
+    hasVariants = true
+    const variantPrices = variants
+      .filter((v) => v && typeof v === 'object' && typeof v.priceInGBP === 'number')
+      .map((v) => (v as { priceInGBP: number }).priceInGBP)
+      .sort((a, b) => a - b)
+
+    if (variantPrices.length > 0) {
+      price = variantPrices[0] // Lowest price
     }
   }
 
@@ -47,13 +49,14 @@ export const ProductGridItem: React.FC<Props> = ({ product }) => {
   return (
     <div className="group relative">
       <Link href={`/products/${slug}`} className="block">
-        <div className="aspect-square w-full overflow-hidden rounded-lg bg-muted dark:bg-muted relative">
+        {/* Taller cards on mobile with aspect-[4/5], square on larger screens */}
+        <div className="aspect-[4/5] sm:aspect-square w-full overflow-hidden rounded-lg bg-muted dark:bg-muted relative">
           {image?.url ? (
             <Image
               alt={image.alt || title || ''}
               src={image.url}
               width={400}
-              height={400}
+              height={500}
               className="size-full object-cover object-center group-hover:opacity-75 transition-opacity"
             />
           ) : (
@@ -61,21 +64,25 @@ export const ProductGridItem: React.FC<Props> = ({ product }) => {
               No image
             </div>
           )}
-          {/* Quick add button - appears on hover */}
-          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Quick add button - always visible on mobile, hover on desktop */}
+          <div className="absolute bottom-3 right-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
             <QuickAddToCart product={product} />
           </div>
         </div>
-        <div className="mt-4 flex justify-between">
-          <div>
-            <h3 className="text-sm text-foreground">
+        <div className="mt-3 flex justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm text-foreground truncate">
               <span aria-hidden="true" className="absolute inset-0" />
               {title}
             </h3>
-            {category && <p className="mt-1 text-sm text-muted-foreground">{category}</p>}
+            {category && <p className="mt-0.5 text-xs text-muted-foreground truncate">{category}</p>}
           </div>
           {typeof price === 'number' && (
-            <Price amount={price} className="text-sm font-medium text-foreground" />
+            <Price
+              amount={price}
+              showFrom={hasVariants}
+              className="text-sm font-medium text-foreground shrink-0"
+            />
           )}
         </div>
       </Link>

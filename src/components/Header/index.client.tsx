@@ -3,10 +3,17 @@
 // TailwindPlus Component: Marketing.Elements.Headers.Constrained
 // Version: 2026-01-12-184920
 // Adapted for: React, Tailwind v4, dark mode support
+// Updated: Mobile two-row header with always-visible search, account dropdown, cart
 
 import { useState, useEffect, useRef } from 'react'
-import { Dialog, DialogPanel } from '@headlessui/react'
-import { Bars3Icon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { Dialog, DialogPanel, Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
+import {
+  Bars3Icon,
+  XMarkIcon,
+  MagnifyingGlassIcon,
+  UserIcon,
+  ChevronRightIcon,
+} from '@heroicons/react/24/outline'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -14,7 +21,7 @@ import type { Header, Setting, User } from '@/payload-types'
 import { CMSLink } from '@/components/Link'
 import { Logo } from '@/components/Logo'
 import { HeaderActions } from './HeaderActions'
-import { Cart } from '@/components/Cart'
+import { CartModal } from '@/components/Cart/CartModal'
 import { cn } from '@/utilities/cn'
 import { useAuth } from '@/providers/Auth'
 
@@ -38,7 +45,6 @@ export function HeaderClient({ header, settings, user }: Props) {
     setMobileMenuOpen(false)
     await logout()
     router.push('/')
-    // router.refresh()
   }
 
   // Prevent scrolling when search is focused
@@ -57,17 +63,15 @@ export function HeaderClient({ header, settings, user }: Props) {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY
-      const scrollThreshold = 10 // Minimum scroll amount to trigger hide/show
+      const scrollThreshold = 10
 
       if (Math.abs(currentScrollY - lastScrollY.current) < scrollThreshold) {
         return
       }
 
       if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-        // Scrolling down & past the header height - hide
         setIsHeaderVisible(false)
       } else {
-        // Scrolling up - show
         setIsHeaderVisible(true)
       }
 
@@ -95,6 +99,7 @@ export function HeaderClient({ header, settings, user }: Props) {
           'fixed inset-0 bg-black/30 dark:bg-black/50 z-30 transition-opacity duration-200',
           isSearchFocused ? 'opacity-100' : 'opacity-0 pointer-events-none',
         )}
+        onClick={() => setIsSearchFocused(false)}
         aria-hidden="true"
       />
 
@@ -104,182 +109,223 @@ export function HeaderClient({ header, settings, user }: Props) {
           !isHeaderVisible && '-translate-y-full',
         )}
       >
-      {/* Row 1: Main header with prominent search */}
-      <div className="border-b border-border">
-        <div className="mx-auto max-w-7xl px-4 lg:px-8 py-4">
-          <div className="flex items-center justify-between gap-8">
-            {/* Logo - Left */}
-            <Link href="/" className="shrink-0">
-              <span className="sr-only">Store</span>
-              <Logo settings={settings} />
-            </Link>
+        {/* ========== MOBILE HEADER (Two Rows) ========== */}
+        <div className="lg:hidden border-b border-border">
+          {/* Mobile Row 1: Hamburger, Logo, Account Dropdown, Cart */}
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between">
+              {/* Left: Hamburger + Logo */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="inline-flex items-center justify-center rounded-md p-2 -ml-2 text-foreground hover:bg-muted transition-colors"
+                  aria-label="Open menu"
+                >
+                  <Bars3Icon aria-hidden="true" className="size-6" />
+                </button>
+                <Link href="/" className="shrink-0">
+                  <span className="sr-only">Store</span>
+                  <Logo settings={settings} />
+                </Link>
+              </div>
 
-            {/* PROMINENT SEARCH BAR - Center (Desktop) */}
-            <form onSubmit={handleSearch} className="hidden lg:block flex-1 max-w-xl">
+              {/* Right: Account Dropdown + Cart */}
+              <div className="flex items-center gap-1">
+                {/* Account Dropdown - TailwindPlus: Application UI.Elements.Dropdowns.Simple */}
+                <Menu as="div" className="relative">
+                  <MenuButton className="inline-flex items-center justify-center rounded-md p-2.5 text-foreground hover:bg-muted transition-colors">
+                    <span className="sr-only">Account menu</span>
+                    <UserIcon className="size-6" aria-hidden="true" />
+                  </MenuButton>
+
+                  <MenuItems
+                    transition
+                    className="absolute right-0 z-50 mt-2 w-52 origin-top-right rounded-lg bg-background dark:bg-card shadow-lg ring-1 ring-border transition data-closed:scale-95 data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in"
+                  >
+                    <div className="py-2">
+                      {user ? (
+                        <>
+                          <MenuItem>
+                            <Link
+                              href="/orders"
+                              className="block px-4 py-3 text-base font-medium text-foreground data-focus:bg-muted"
+                            >
+                              Orders
+                            </Link>
+                          </MenuItem>
+                          <MenuItem>
+                            <Link
+                              href="/account"
+                              className="block px-4 py-3 text-base font-medium text-foreground data-focus:bg-muted"
+                            >
+                              My Account
+                            </Link>
+                          </MenuItem>
+                          <div className="my-2 border-t border-border" />
+                          <MenuItem>
+                            <button
+                              onClick={handleLogout}
+                              className="block w-full px-4 py-3 text-left text-base font-medium text-foreground data-focus:bg-muted"
+                            >
+                              Log out
+                            </button>
+                          </MenuItem>
+                        </>
+                      ) : (
+                        <>
+                          <MenuItem>
+                            <Link
+                              href="/login"
+                              className="block px-4 py-3 text-base font-medium text-foreground data-focus:bg-muted"
+                            >
+                              Log in
+                            </Link>
+                          </MenuItem>
+                          <MenuItem>
+                            <Link
+                              href="/create-account"
+                              className="block px-4 py-3 text-base font-medium text-foreground data-focus:bg-muted"
+                            >
+                              Create account
+                            </Link>
+                          </MenuItem>
+                        </>
+                      )}
+                    </div>
+                  </MenuItems>
+                </Menu>
+
+                {/* Cart button with badge */}
+                <div className="inline-flex items-center justify-center rounded-md p-2 text-foreground hover:bg-muted transition-colors">
+                  <CartModal />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Row 2: Full-width Search Bar */}
+          <div className="px-4 pb-3">
+            <form onSubmit={handleSearch}>
               <div className="relative">
-                <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
                 <input
                   type="search"
-                  placeholder="Search for products..."
+                  placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setIsSearchFocused(false)}
-                  className="w-full rounded-full border-2 border-border bg-white dark:bg-muted/20 py-3 pl-12 pr-28 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-secondary focus:outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 !shadow-none transition-colors appearance-none"
+                  className="w-full rounded-full border-2 border-border bg-white dark:bg-muted/20 py-2.5 pl-4 pr-12 text-base text-foreground placeholder:text-muted-foreground outline-none focus:!border-secondary focus:outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 !shadow-none transition-colors appearance-none"
                 />
                 <button
                   type="submit"
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-secondary px-5 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/90 transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center size-9 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors mr-0.5"
+                  aria-label="Search"
                 >
-                  Search
+                  <MagnifyingGlassIcon className="size-5" />
                 </button>
               </div>
             </form>
+          </div>
+        </div>
 
-            {/* Right side - Account & Cart (Desktop) / Menu button (Mobile) */}
-            <div className="flex items-center gap-4 shrink-0">
-              {/* Mobile menu button */}
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden -m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-foreground"
-              >
-                <span className="sr-only">Open main menu</span>
-                <Bars3Icon aria-hidden="true" className="size-6" />
-              </button>
+        {/* ========== DESKTOP HEADER ========== */}
+        <div className="hidden lg:block border-b border-border">
+          {/* Desktop Row 1: Logo, Search, Account/Cart */}
+          <div className="mx-auto max-w-7xl px-4 lg:px-8 py-4">
+            <div className="flex items-center justify-between gap-8">
+              {/* Logo - Left */}
+              <Link href="/" className="shrink-0">
+                <span className="sr-only">Store</span>
+                <Logo settings={settings} />
+              </Link>
 
-              {/* Desktop - Account & Cart */}
-              <div className="hidden lg:flex items-center gap-4">
+              {/* Search Bar - Center */}
+              <form onSubmit={handleSearch} className="flex-1 max-w-xl">
+                <div className="relative">
+                  <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+                  <input
+                    type="search"
+                    placeholder="Search for products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                    className="w-full rounded-full border-2 border-border bg-white dark:bg-muted/20 py-3 pl-12 pr-14 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:!border-secondary focus:outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 !shadow-none transition-colors appearance-none"
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center size-10 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors"
+                    aria-label="Search"
+                  >
+                    <MagnifyingGlassIcon className="size-5" />
+                  </button>
+                </div>
+              </form>
+
+              {/* Account & Cart - Right */}
+              <div className="flex items-center gap-4 shrink-0">
                 <HeaderActions user={user} />
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Row 2: Navigation bar (desktop only) - Full width */}
-      <nav aria-label="Main navigation" className="hidden lg:block border-b border-border">
-        <div className="mx-auto max-w-7xl px-4 lg:px-8">
-          <div className="flex justify-center gap-x-10 py-3">
-            {menu.map((item) => (
-              <CMSLink
-                key={item.id}
-                {...item.link}
-                size="clear"
-                className="text-sm font-medium text-foreground hover:text-secondary transition-colors"
-                appearance="link"
-              />
-            ))}
-          </div>
-        </div>
-      </nav>
-
-      {/* Mobile menu dialog */}
-      <Dialog open={mobileMenuOpen} onClose={setMobileMenuOpen} className="lg:hidden">
-        <div className="fixed inset-0 z-50" />
-        <DialogPanel className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-background p-6 sm:max-w-sm sm:ring-1 sm:ring-border">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="-m-1.5 p-1.5" onClick={() => setMobileMenuOpen(false)}>
-              <span className="sr-only">Store</span>
-              <Logo settings={settings} />
-            </Link>
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(false)}
-              className="-m-2.5 rounded-md p-2.5 text-foreground"
-            >
-              <span className="sr-only">Close menu</span>
-              <XMarkIcon aria-hidden="true" className="size-6" />
-            </button>
-          </div>
-
-          {/* Mobile search */}
-          <form onSubmit={handleSearch} className="mt-6">
-            <div className="relative">
-              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="search"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-md bg-muted/50 dark:bg-muted/30 py-2.5 pl-10 pr-4 text-base text-foreground placeholder:text-muted-foreground border-0 focus:ring-2 focus:ring-secondary focus:outline-none"
-              />
-            </div>
-          </form>
-
-          <div className="mt-6 flow-root">
-            <div className="-my-6 divide-y divide-border">
-              {/* Navigation links */}
-              <div className="space-y-2 py-6">
+          {/* Desktop Row 2: Navigation */}
+          <nav aria-label="Main navigation" className="bg-muted/30 dark:bg-muted/10">
+            <div className="mx-auto max-w-7xl px-4 lg:px-8">
+              <div className="flex justify-center gap-x-8 py-2.5">
                 {menu.map((item) => (
                   <CMSLink
                     key={item.id}
                     {...item.link}
                     size="clear"
-                    className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold text-foreground hover:bg-muted"
+                    className="text-sm font-medium text-foreground hover:text-secondary transition-colors"
                     appearance="link"
-                    onClick={() => setMobileMenuOpen(false)}
                   />
                 ))}
               </div>
-
-              {/* Account section */}
-              <div className="py-6">
-                {user ? (
-                  <div className="space-y-2">
-                    <Link
-                      href="/orders"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold text-foreground hover:bg-muted"
-                    >
-                      Orders
-                    </Link>
-                    <Link
-                      href="/account"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold text-foreground hover:bg-muted"
-                    >
-                      My Account
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="-mx-3 block w-full text-left rounded-lg px-3 py-2.5 text-base font-semibold text-foreground hover:bg-muted"
-                    >
-                      Log out
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Link
-                      href="/login"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold text-foreground hover:bg-muted"
-                    >
-                      Log in
-                    </Link>
-                    <Link
-                      href="/create-account"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold text-secondary hover:bg-muted"
-                    >
-                      Create account <span aria-hidden="true">&rarr;</span>
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              {/* Cart button in mobile */}
-              <div className="py-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-base font-semibold text-foreground">Shopping Cart</span>
-                  <Cart />
-                </div>
-              </div>
             </div>
-          </div>
-        </DialogPanel>
-      </Dialog>
-    </header>
+          </nav>
+        </div>
+
+        {/* ========== MOBILE NAV DRAWER (CMS Links Only) ========== */}
+        {/* TailwindPlus: Application UI.Navigation.Vertical Navigation.Simple */}
+        <Dialog open={mobileMenuOpen} onClose={setMobileMenuOpen} className="lg:hidden">
+          <div className="fixed inset-0 z-50 bg-black/30 dark:bg-black/50" aria-hidden="true" />
+          <DialogPanel className="fixed inset-y-0 left-0 z-50 w-[85%] max-w-xs overflow-y-auto bg-background ring-1 ring-border shadow-xl">
+            {/* Close button */}
+            <div className="flex justify-end p-4">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="-m-2.5 rounded-md p-2.5 text-foreground hover:bg-muted transition-colors"
+              >
+                <span className="sr-only">Close menu</span>
+                <XMarkIcon aria-hidden="true" className="size-6" />
+              </button>
+            </div>
+
+            {/* Navigation Links from CMS */}
+            <nav aria-label="Mobile navigation" className="flex flex-1 flex-col px-4 pb-4">
+              <ul role="list" className="space-y-1">
+                {menu.map((item) => (
+                  <li key={item.id}>
+                    <CMSLink
+                      {...item.link}
+                      size="clear"
+                      className="flex items-center justify-between rounded-md px-3 py-3 text-base font-semibold text-foreground hover:bg-muted transition-colors"
+                      appearance="link"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <ChevronRightIcon className="size-5 text-muted-foreground" aria-hidden="true" />
+                    </CMSLink>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </DialogPanel>
+        </Dialog>
+      </header>
     </>
   )
 }

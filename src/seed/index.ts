@@ -1,5 +1,5 @@
 import type { Payload } from 'payload'
-import type { Category, Product, VariantType, VariantOption, ShippingMethod } from '@/payload-types'
+import type { Category, Page, Product, VariantType, VariantOption, ShippingMethod } from '@/payload-types'
 
 /**
  * Seed script - clears demo content and recreates it
@@ -39,13 +39,13 @@ export async function seed(payload: Payload): Promise<void> {
   await createSettings(payload)
   console.log('✅ Created site settings')
 
-  // Create navigation (header + footer with columns)
-  await createNavigation(payload, categories)
-  console.log('✅ Created navigation')
-
-  // Create CMS pages
+  // Create CMS pages (must be before navigation since footer links to pages)
   const pages = await createPages(payload)
   console.log(`✅ Created ${pages.length} CMS pages`)
+
+  // Create navigation (header + footer with columns)
+  await createNavigation(payload, categories, pages)
+  console.log('✅ Created navigation')
 
   // Create contact form
   await createContactForm(payload)
@@ -361,6 +361,7 @@ async function createProducts(
       inventory: 100,
       categories: clothing ? [clothing.id] : [],
       imageKey: 'tshirt',
+      description: 'A timeless wardrobe essential crafted from 100% organic cotton. Features a comfortable relaxed fit, reinforced stitching, and pre-shrunk fabric that maintains its shape wash after wash. Perfect for everyday wear or layering.',
     },
     {
       title: 'Leather Wallet',
@@ -369,6 +370,7 @@ async function createProducts(
       inventory: 50,
       categories: accessories ? [accessories.id] : [],
       imageKey: 'wallet',
+      description: 'Handcrafted from premium full-grain leather that develops a beautiful patina over time. Features 8 card slots, 2 note compartments, and RFID-blocking technology. Slim profile fits comfortably in any pocket.',
     },
     {
       title: 'Ceramic Mug',
@@ -377,6 +379,7 @@ async function createProducts(
       inventory: 200,
       categories: homeLiving ? [homeLiving.id] : [],
       imageKey: 'mug',
+      description: 'Hand-thrown ceramic mug with a smooth matte finish and comfortable handle. Holds 350ml of your favourite beverage. Microwave and dishwasher safe. Each piece is unique with subtle variations in glaze.',
     },
     {
       title: 'Canvas Tote Bag',
@@ -385,6 +388,7 @@ async function createProducts(
       inventory: 75,
       categories: accessories ? [accessories.id] : [],
       imageKey: 'tote',
+      description: 'Durable heavyweight canvas tote with reinforced handles and a spacious interior. Features an internal pocket for small items and a magnetic snap closure. Perfect for shopping, beach trips, or everyday use.',
     },
     {
       title: 'Scented Candle',
@@ -393,6 +397,7 @@ async function createProducts(
       inventory: 150,
       categories: homeLiving ? [homeLiving.id] : [],
       imageKey: 'candle',
+      description: 'Hand-poured soy wax candle with natural essential oils. Burns cleanly for up to 45 hours with a warm, inviting fragrance. Comes in a reusable glass container. Available in Lavender & Eucalyptus or Vanilla & Sandalwood.',
     },
   ]
 
@@ -411,6 +416,7 @@ async function createProducts(
         inventory: p.inventory,
         categories: p.categories,
         gallery,
+        description: createRichTextContent([{ type: 'paragraph', text: p.description }]),
         skipSync: true,
         _status: 'published',
       },
@@ -421,10 +427,13 @@ async function createProducts(
   return createdProducts
 }
 
-async function createNavigation(payload: Payload, categories: Category[]) {
+async function createNavigation(payload: Payload, categories: Category[], pages: Page[]) {
   const categoryNavItems = categories.map((cat) => ({
     link: { type: 'category' as const, category: cat.id, label: cat.title },
   }))
+
+  // Helper to find page by slug
+  const findPage = (slug: string) => pages.find((p) => p.slug === slug)
 
   // Header navigation
   await payload.updateGlobal({
@@ -438,6 +447,13 @@ async function createNavigation(payload: Payload, categories: Category[]) {
   })
 
   // Footer with columns and social links
+  const contactPage = findPage('contact')
+  const shippingPage = findPage('shipping-policy')
+  const returnsPage = findPage('returns-refunds')
+  const aboutPage = findPage('about')
+  const privacyPage = findPage('privacy-policy')
+  const termsPage = findPage('terms-conditions')
+
   await payload.updateGlobal({
     slug: 'footer',
     data: {
@@ -452,18 +468,18 @@ async function createNavigation(payload: Payload, categories: Category[]) {
         {
           title: 'Support',
           links: [
-            { link: { type: 'page' as const, page: null, label: 'Contact Us', url: '/contact' } },
-            { link: { type: 'page' as const, page: null, label: 'Shipping Policy', url: '/shipping-policy' } },
-            { link: { type: 'page' as const, page: null, label: 'Returns & Refunds', url: '/returns-refunds' } },
+            ...(contactPage ? [{ link: { type: 'page' as const, page: contactPage.id, label: 'Contact Us' } }] : []),
+            ...(shippingPage ? [{ link: { type: 'page' as const, page: shippingPage.id, label: 'Shipping Policy' } }] : []),
+            ...(returnsPage ? [{ link: { type: 'page' as const, page: returnsPage.id, label: 'Returns & Refunds' } }] : []),
             { link: { type: 'custom' as const, url: '/track-order', label: 'Track Order' } },
           ],
         },
         {
           title: 'Company',
           links: [
-            { link: { type: 'page' as const, page: null, label: 'About Us', url: '/about' } },
-            { link: { type: 'page' as const, page: null, label: 'Privacy Policy', url: '/privacy-policy' } },
-            { link: { type: 'page' as const, page: null, label: 'Terms & Conditions', url: '/terms-conditions' } },
+            ...(aboutPage ? [{ link: { type: 'page' as const, page: aboutPage.id, label: 'About Us' } }] : []),
+            ...(privacyPage ? [{ link: { type: 'page' as const, page: privacyPage.id, label: 'Privacy Policy' } }] : []),
+            ...(termsPage ? [{ link: { type: 'page' as const, page: termsPage.id, label: 'Terms & Conditions' } }] : []),
           ],
         },
       ],
@@ -949,7 +965,6 @@ async function createPages(payload: Payload) {
       title: 'About Us',
       slug: 'about',
       content: createRichTextContent([
-        { type: 'heading', level: 1, text: 'About Demo Store' },
         {
           type: 'paragraph',
           text: 'Welcome to Demo Store! We are a passionate team dedicated to bringing you the best quality products at affordable prices.',
@@ -970,7 +985,6 @@ async function createPages(payload: Payload) {
       title: 'Contact Us',
       slug: 'contact',
       content: createRichTextContent([
-        { type: 'heading', level: 1, text: 'Contact Us' },
         {
           type: 'paragraph',
           text: "We'd love to hear from you! Fill out the form below and we'll get back to you as soon as possible.",
@@ -981,7 +995,6 @@ async function createPages(payload: Payload) {
       title: 'Terms & Conditions',
       slug: 'terms-conditions',
       content: createRichTextContent([
-        { type: 'heading', level: 1, text: 'Terms & Conditions' },
         {
           type: 'paragraph',
           text: 'Please read these terms and conditions carefully before using our services.',
@@ -1007,7 +1020,6 @@ async function createPages(payload: Payload) {
       title: 'Privacy Policy',
       slug: 'privacy-policy',
       content: createRichTextContent([
-        { type: 'heading', level: 1, text: 'Privacy Policy' },
         {
           type: 'paragraph',
           text: 'Your privacy is important to us. This policy explains how we collect, use, and protect your data.',
@@ -1033,7 +1045,6 @@ async function createPages(payload: Payload) {
       title: 'Shipping Policy',
       slug: 'shipping-policy',
       content: createRichTextContent([
-        { type: 'heading', level: 1, text: 'Shipping Policy' },
         {
           type: 'paragraph',
           text: 'We offer several shipping options to meet your needs.',
@@ -1063,7 +1074,6 @@ async function createPages(payload: Payload) {
       title: 'Returns & Refunds',
       slug: 'returns-refunds',
       content: createRichTextContent([
-        { type: 'heading', level: 1, text: 'Returns & Refunds' },
         {
           type: 'paragraph',
           text: "We want you to be completely satisfied with your purchase. If you're not happy, we're here to help.",
@@ -1096,6 +1106,9 @@ async function createPages(payload: Payload) {
         slug: pageData.slug,
         content: pageData.content,
         _status: 'published',
+      },
+      context: {
+        disableRevalidate: true,
       },
     })
     created.push(page)

@@ -188,15 +188,29 @@ const queryProductBySlug = async ({ slug }: { slug: string }) => {
         ...(draft ? [] : [{ _status: { equals: 'published' } }]),
       ],
     },
-    populate: {
-      variants: {
-        title: true,
-        priceInGBP: true,
-        inventory: true,
-        options: true,
-      },
-    },
   })
 
-  return result.docs?.[0] || null
+  const product = result.docs?.[0] || null
+
+  // Populate variantTypes with their options (options is a join field that needs explicit population)
+  if (product?.enableVariants && product?.variantTypes?.length) {
+    const variantTypeIds = product.variantTypes.map((vt) =>
+      typeof vt === 'object' ? vt.id : vt,
+    )
+
+    const variantTypesResult = await payload.find({
+      collection: 'variantTypes',
+      depth: 2,
+      where: {
+        id: { in: variantTypeIds },
+      },
+      joins: {
+        options: {},
+      },
+    })
+
+    product.variantTypes = variantTypesResult.docs
+  }
+
+  return product
 }

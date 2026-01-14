@@ -77,6 +77,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
     slug: true,
     variantOptions: true,
     variants: true,
+    variantTypes: true,
     enableVariants: true,
     gallery: true,
     priceInGBP: true,

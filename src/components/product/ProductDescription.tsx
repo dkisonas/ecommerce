@@ -5,12 +5,11 @@
 // Adapted for: React, Tailwind v4, dark mode support (manually added)
 
 import type { Product, Variant } from '@/payload-types'
-import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react'
-import { MinusIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { RichText } from '@/components/RichText'
 import { AddToCart } from '@/components/Cart/AddToCart'
 import { Price } from '@/components/Price'
-import React, { Suspense } from 'react'
+import React, { Suspense, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 import { VariantSelector } from './VariantSelector'
 import { useCurrency } from '@payloadcms/plugin-ecommerce/client/react'
@@ -18,44 +17,63 @@ import { StockIndicator } from '@/components/product/StockIndicator'
 
 export function ProductDescription({ product }: { product: Product }) {
   const { currency } = useCurrency()
-  let amount = 0,
-    lowestAmount = 0,
-    highestAmount = 0
+  const searchParams = useSearchParams()
+  const selectedVariantId = searchParams.get('variant')
+
   const priceField = `priceIn${currency.code}` as keyof Product
+  const variantPriceField = `priceIn${currency.code}` as keyof Variant
   const hasVariants = product.enableVariants && Boolean(product.variants?.docs?.length)
 
-  if (hasVariants) {
-    const priceField = `priceIn${currency.code}` as keyof Variant
-    const variantsOrderedByPrice = product.variants?.docs
-      ?.filter((variant) => variant && typeof variant === 'object')
-      .sort((a, b) => {
-        if (
-          typeof a === 'object' &&
-          typeof b === 'object' &&
-          priceField in a &&
-          priceField in b &&
-          typeof a[priceField] === 'number' &&
-          typeof b[priceField] === 'number'
-        ) {
-          return a[priceField] - b[priceField]
-        }
-
-        return 0
-      }) as Variant[]
-
-    const lowestVariant = variantsOrderedByPrice[0][priceField]
-    const highestVariant = variantsOrderedByPrice[variantsOrderedByPrice.length - 1][priceField]
-    if (
-      variantsOrderedByPrice &&
-      typeof lowestVariant === 'number' &&
-      typeof highestVariant === 'number'
-    ) {
-      lowestAmount = lowestVariant
-      highestAmount = highestVariant
+  // Calculate price display based on variants and selection
+  const priceDisplay = useMemo(() => {
+    if (!hasVariants) {
+      // Simple product - just show the price
+      const price = product[priceField]
+      if (typeof price === 'number') {
+        return { type: 'single' as const, amount: price }
+      }
+      return { type: 'single' as const, amount: 0 }
     }
-  } else if (product[priceField] && typeof product[priceField] === 'number') {
-    amount = product[priceField]
-  }
+
+    // Product with variants
+    const variants = product.variants?.docs?.filter(
+      (v): v is Variant => v !== null && typeof v === 'object',
+    )
+
+    if (!variants?.length) {
+      return { type: 'single' as const, amount: 0 }
+    }
+
+    // If a variant is selected, show that variant's price
+    if (selectedVariantId) {
+      const selectedVariant = variants.find((v) => String(v.id) === selectedVariantId)
+      if (selectedVariant) {
+        const price = selectedVariant[variantPriceField]
+        if (typeof price === 'number') {
+          return { type: 'single' as const, amount: price }
+        }
+      }
+    }
+
+    // No variant selected - show price range
+    const prices = variants
+      .map((v) => v[variantPriceField])
+      .filter((p): p is number => typeof p === 'number')
+      .sort((a, b) => a - b)
+
+    if (prices.length === 0) {
+      return { type: 'single' as const, amount: 0 }
+    }
+
+    const lowestAmount = prices[0]
+    const highestAmount = prices[prices.length - 1]
+
+    if (lowestAmount === highestAmount) {
+      return { type: 'single' as const, amount: lowestAmount }
+    }
+
+    return { type: 'range' as const, lowestAmount, highestAmount }
+  }, [hasVariants, product, priceField, selectedVariantId, variantPriceField])
 
   return (
     <div>
@@ -66,10 +84,10 @@ export function ProductDescription({ product }: { product: Product }) {
       <div className="mt-3">
         <h2 className="sr-only">Product information</h2>
         <p className="text-3xl tracking-tight text-foreground">
-          {hasVariants ? (
-            <Price highestAmount={highestAmount} lowestAmount={lowestAmount} />
+          {priceDisplay.type === 'range' ? (
+            <Price highestAmount={priceDisplay.highestAmount} lowestAmount={priceDisplay.lowestAmount} />
           ) : (
-            <Price amount={amount} />
+            <Price amount={priceDisplay.amount} />
           )}
         </p>
       </div>
@@ -107,78 +125,41 @@ export function ProductDescription({ product }: { product: Product }) {
         </Suspense>
       </div>
 
-      {/* Expandable details section */}
-      <section aria-labelledby="details-heading" className="mt-12">
-        <h2 id="details-heading" className="sr-only">
-          Additional details
-        </h2>
-
-        <div className="divide-y divide-border border-t border-border">
-          {/* Shipping info */}
-          <Disclosure as="div">
-            <h3>
-              <DisclosureButton className="group relative flex w-full items-center justify-between py-6 text-left">
-                <span className="text-sm font-medium text-foreground group-data-[open]:text-secondary">
-                  Shipping
-                </span>
-                <span className="ml-6 flex items-center">
-                  <PlusIcon
-                    aria-hidden="true"
-                    className="block size-6 text-muted-foreground group-hover:text-foreground group-data-[open]:hidden"
-                  />
-                  <MinusIcon
-                    aria-hidden="true"
-                    className="hidden size-6 text-secondary group-hover:text-secondary/80 group-data-[open]:block"
-                  />
-                </span>
-              </DisclosureButton>
-            </h3>
-            <DisclosurePanel className="pb-6">
-              <ul
-                role="list"
-                className="list-disc space-y-1 pl-5 text-sm text-muted-foreground marker:text-muted-foreground/50"
-              >
-                <li className="pl-2">Free shipping on orders over £50</li>
-                <li className="pl-2">UK delivery: 3-5 business days</li>
-                <li className="pl-2">International shipping available</li>
-                <li className="pl-2">Express delivery options at checkout</li>
-              </ul>
-            </DisclosurePanel>
-          </Disclosure>
-
-          {/* Returns info */}
-          <Disclosure as="div">
-            <h3>
-              <DisclosureButton className="group relative flex w-full items-center justify-between py-6 text-left">
-                <span className="text-sm font-medium text-foreground group-data-[open]:text-secondary">
-                  Returns
-                </span>
-                <span className="ml-6 flex items-center">
-                  <PlusIcon
-                    aria-hidden="true"
-                    className="block size-6 text-muted-foreground group-hover:text-foreground group-data-[open]:hidden"
-                  />
-                  <MinusIcon
-                    aria-hidden="true"
-                    className="hidden size-6 text-secondary group-hover:text-secondary/80 group-data-[open]:block"
-                  />
-                </span>
-              </DisclosureButton>
-            </h3>
-            <DisclosurePanel className="pb-6">
-              <ul
-                role="list"
-                className="list-disc space-y-1 pl-5 text-sm text-muted-foreground marker:text-muted-foreground/50"
-              >
-                <li className="pl-2">30-day return policy</li>
-                <li className="pl-2">Free returns on all orders</li>
-                <li className="pl-2">Items must be unused and in original packaging</li>
-                <li className="pl-2">Refund processed within 5-7 business days</li>
-              </ul>
-            </DisclosurePanel>
-          </Disclosure>
+      {/* Shipping & Returns - Always visible like major ecommerce sites */}
+      <div className="mt-8 space-y-4 border-t border-border pt-6">
+        {/* Shipping highlights */}
+        <div className="flex items-start gap-3">
+          <svg className="size-5 text-secondary shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-foreground">Free shipping over £50</p>
+            <p className="text-xs text-muted-foreground">Standard delivery 3-5 business days</p>
+          </div>
         </div>
-      </section>
+
+        {/* Returns highlight */}
+        <div className="flex items-start gap-3">
+          <svg className="size-5 text-secondary shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-foreground">Free 30-day returns</p>
+            <p className="text-xs text-muted-foreground">Hassle-free returns on all orders</p>
+          </div>
+        </div>
+
+        {/* Secure payment */}
+        <div className="flex items-start gap-3">
+          <svg className="size-5 text-secondary shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-foreground">Secure checkout</p>
+            <p className="text-xs text-muted-foreground">SSL encrypted payment</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

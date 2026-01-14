@@ -26,7 +26,7 @@ import { toast } from 'sonner'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { CheckoutSteps } from '@/components/checkout/CheckoutSteps'
 import { ShippingMethodSelector } from '@/components/checkout/ShippingMethodSelector'
-import { CheckIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 
 const apiKey = `${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}`
 const stripe = loadStripe(apiKey)
@@ -39,13 +39,15 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
   const { theme } = useTheme()
   const [currentStep, setCurrentStep] = useState<number>(0)
   const [email, setEmail] = useState('')
-  const [emailEditable, setEmailEditable] = useState(true)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
   const [paymentData, setPaymentData] = useState<null | Record<string, unknown>>(null)
   const { initiatePayment } = usePayments()
   const { addresses } = useAddresses()
   const [shippingAddress, setShippingAddress] = useState<Partial<Address>>()
   const [billingAddress, setBillingAddress] = useState<Partial<Address>>()
-  const [billingAddressSameAsShipping, setBillingAddressSameAsShipping] = useState(true)
+  const [useDifferentBillingAddress, setUseDifferentBillingAddress] = useState(false)
   const [isProcessingPayment, setProcessingPayment] = useState(false)
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<ShippingMethod | null>(null)
   const [shippingCost, setShippingCost] = useState<number>(0)
@@ -54,10 +56,15 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
   const cartSubtotal = cart?.subtotal || 0
   const orderTotal = cartSubtotal + shippingCost
 
+  // For logged-in users, use their stored info; for guests, use form fields
+  const hasContactInfo = user
+    ? Boolean(user.email && user.firstName && user.lastName)
+    : Boolean(email && firstName && lastName)
+
   const canGoToPayment = Boolean(
-    (email || user) &&
-      billingAddress &&
-      (billingAddressSameAsShipping || shippingAddress) &&
+    hasContactInfo &&
+      shippingAddress &&
+      (!useDifferentBillingAddress || billingAddress) &&
       selectedShippingMethod,
   )
 
@@ -75,7 +82,7 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
       if (addresses && addresses.length > 0) {
         const defaultAddress = addresses[0]
         if (defaultAddress) {
-          setBillingAddress(defaultAddress)
+          setShippingAddress(defaultAddress)
         }
       }
     }
@@ -85,20 +92,30 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
     return () => {
       setShippingAddress(undefined)
       setBillingAddress(undefined)
-      setBillingAddressSameAsShipping(true)
+      setUseDifferentBillingAddress(false)
       setEmail('')
-      setEmailEditable(true)
+      setFirstName('')
+      setLastName('')
+      setPhone('')
     }
   }, [])
 
   const initiatePaymentIntent = useCallback(
     async (paymentID: string): Promise<void> => {
       try {
+        const customerEmail = email || user?.email
+        const customerFirstName = firstName || user?.firstName || ''
+        const customerLastName = lastName || user?.lastName || ''
+        const customerPhone = phone || user?.phone || ''
+
         const paymentData = (await initiatePayment(paymentID, {
           additionalData: {
-            ...(email ? { customerEmail: email } : {}),
-            billingAddress,
-            shippingAddress: billingAddressSameAsShipping ? billingAddress : shippingAddress,
+            ...(customerEmail ? { customerEmail } : {}),
+            customerFirstName,
+            customerLastName,
+            customerPhone,
+            shippingAddress,
+            billingAddress: useDifferentBillingAddress ? billingAddress : shippingAddress,
             // Shipping info
             shippingMethodId: selectedShippingMethod?.id,
             shippingCost,
@@ -123,10 +140,14 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
       }
     },
     [
-      billingAddress,
-      billingAddressSameAsShipping,
       shippingAddress,
+      useDifferentBillingAddress,
+      billingAddress,
       email,
+      firstName,
+      lastName,
+      phone,
+      user,
       initiatePayment,
       selectedShippingMethod,
       shippingCost,
@@ -181,90 +202,113 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
       {/* Progress Steps */}
       <CheckoutSteps currentStep={currentStep} onStepClick={handleStepClick} />
 
-      <div className="mx-auto max-w-7xl px-4 pt-8 pb-16 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-lg grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-2">
-          {/* Left Column - Form */}
-          <div className="mx-auto w-full max-w-lg">
+      <div className="mx-auto max-w-7xl px-4 pt-6 pb-16 sm:px-6 lg:px-8 lg:pt-8">
+        <div className="mx-auto max-w-lg">
             {/* Step 0: Contact & Address */}
             {isStep0 ? (
-              <div className="space-y-8">
+              <div className="space-y-6 lg:space-y-8">
                 {/* Contact Section */}
-                <section>
+                <section className="rounded-xl border border-border bg-card p-4 lg:border-0 lg:bg-transparent lg:p-0">
                   <h2 className="text-lg font-medium text-foreground">Contact information</h2>
 
-                  {!user && (
-                    <div className="mt-4 rounded-lg border border-border bg-muted/30 dark:bg-muted/10 p-4">
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Have an account?{' '}
-                        <Link href="/login" className="text-secondary hover:text-secondary/80 font-medium">
-                          Log in
-                        </Link>{' '}
-                        for a faster checkout.
-                      </p>
-                    </div>
-                  )}
-
                   {user ? (
-                    <div className="mt-4 rounded-lg border border-border bg-muted/30 dark:bg-muted/10 p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-foreground">{user.email}</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Not you?{' '}
-                            <Link href="/logout" className="text-secondary hover:text-secondary/80">
-                              Log out
-                            </Link>
-                          </p>
-                        </div>
-                        <CheckIcon className="size-5 text-secondary" />
-                      </div>
+                    <div className="mt-4 space-y-1">
+                      <p className="text-sm text-foreground">{user.firstName} {user.lastName}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      {user.phone && <p className="text-sm text-muted-foreground">{user.phone}</p>}
                     </div>
                   ) : (
-                    <div className="mt-6">
-                      <label
-                        htmlFor="email-address"
-                        className="block text-sm font-medium text-foreground"
-                      >
-                        Email address
-                      </label>
-                      <div className="mt-2">
+                    <>
+                      <div className="mt-4 rounded-lg border border-border bg-muted/30 dark:bg-muted/10 p-3">
+                        <p className="text-sm text-muted-foreground">
+                          Have an account?{' '}
+                          <Link href="/login" className="text-secondary hover:text-secondary/80 font-medium">
+                            Log in
+                          </Link>{' '}
+                          for a faster checkout.
+                        </p>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-4">
+                        <div>
+                          <label htmlFor="first-name" className="block text-sm font-medium text-foreground">
+                            First name
+                          </label>
+                          <input
+                            id="first-name"
+                            name="first-name"
+                            type="text"
+                            autoComplete="given-name"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            className="mt-1 block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
+                            placeholder="John"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="last-name" className="block text-sm font-medium text-foreground">
+                            Last name
+                          </label>
+                          <input
+                            id="last-name"
+                            name="last-name"
+                            type="text"
+                            autoComplete="family-name"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            className="mt-1 block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
+                            placeholder="Doe"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <label htmlFor="email-address" className="block text-sm font-medium text-foreground">
+                          Email
+                        </label>
                         <input
                           id="email-address"
                           name="email-address"
                           type="email"
                           autoComplete="email"
-                          disabled={!emailEditable}
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-1 block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
                           placeholder="you@example.com"
                         />
                       </div>
-                      {!emailEditable && (
-                        <button
-                          type="button"
-                          onClick={() => setEmailEditable(true)}
-                          className="mt-2 text-sm text-secondary hover:text-secondary/80"
-                        >
-                          Change email
-                        </button>
-                      )}
-                    </div>
+
+                      <div className="mt-4">
+                        <label htmlFor="phone" className="block text-sm font-medium text-foreground">
+                          Phone <span className="text-muted-foreground">(optional)</span>
+                        </label>
+                        <input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          autoComplete="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="mt-1 block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
+                          placeholder="+370 600 00000"
+                        />
+                      </div>
+                    </>
                   )}
                 </section>
 
-                {/* Address Section */}
-                <section>
-                  <h2 className="text-lg font-medium text-foreground">Billing address</h2>
+                {/* Shipping Address Section (Primary) */}
+                <section className="rounded-xl border border-border bg-card p-4 lg:border-0 lg:bg-transparent lg:p-0">
+                  <h2 className="text-lg font-medium text-foreground">Shipping address</h2>
 
-                  {billingAddress ? (
+                  {shippingAddress ? (
                     <div className="mt-4 rounded-lg border border-border bg-muted/30 dark:bg-muted/10 p-4">
                       <AddressItem
-                        address={billingAddress}
+                        address={shippingAddress}
                         actions={
                           <button
                             type="button"
-                            onClick={() => setBillingAddress(undefined)}
+                            onClick={() => setShippingAddress(undefined)}
                             className="text-sm font-medium text-secondary hover:text-secondary/80"
                           >
                             Change
@@ -274,47 +318,45 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
                     </div>
                   ) : user ? (
                     <div className="mt-4">
-                      <CheckoutAddresses heading="" setAddress={setBillingAddress} />
+                      <CheckoutAddresses heading="" setAddress={setShippingAddress} />
                     </div>
                   ) : (
                     <div className="mt-4">
                       <CreateAddressModal
                         disabled={!email}
                         callback={(address) => {
-                          setBillingAddress(address)
+                          setShippingAddress(address)
                         }}
                         skipSubmission={true}
                       />
                     </div>
                   )}
-                </section>
 
-                {/* Shipping Address Section */}
-                <section>
-                  <div className="flex items-center gap-3">
+                  {/* Optional different billing address */}
+                  <div className="mt-4 flex items-center gap-3">
                     <input
-                      id="shipping-same"
+                      id="different-billing"
                       type="checkbox"
-                      checked={billingAddressSameAsShipping}
-                      onChange={(e) => setBillingAddressSameAsShipping(e.target.checked)}
+                      checked={useDifferentBillingAddress}
+                      onChange={(e) => setUseDifferentBillingAddress(e.target.checked)}
                       className="size-4 rounded border-border text-secondary focus:ring-secondary"
                     />
-                    <label htmlFor="shipping-same" className="text-sm text-foreground">
-                      Shipping address same as billing
+                    <label htmlFor="different-billing" className="text-sm text-foreground">
+                      Use different billing address
                     </label>
                   </div>
 
-                  {!billingAddressSameAsShipping && (
-                    <div className="mt-6">
-                      <h2 className="text-lg font-medium text-foreground">Shipping address</h2>
-                      {shippingAddress ? (
-                        <div className="mt-4 rounded-lg border border-border bg-muted/30 dark:bg-muted/10 p-4">
+                  {useDifferentBillingAddress && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <h3 className="text-base font-medium text-foreground">Billing address</h3>
+                      {billingAddress ? (
+                        <div className="mt-3 rounded-lg border border-border bg-muted/30 dark:bg-muted/10 p-4">
                           <AddressItem
-                            address={shippingAddress}
+                            address={billingAddress}
                             actions={
                               <button
                                 type="button"
-                                onClick={() => setShippingAddress(undefined)}
+                                onClick={() => setBillingAddress(undefined)}
                                 className="text-sm font-medium text-secondary hover:text-secondary/80"
                               >
                                 Change
@@ -323,18 +365,14 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
                           />
                         </div>
                       ) : user ? (
-                        <div className="mt-4">
-                          <CheckoutAddresses
-                            heading=""
-                            description="Select a shipping address"
-                            setAddress={setShippingAddress}
-                          />
+                        <div className="mt-3">
+                          <CheckoutAddresses heading="" setAddress={setBillingAddress} />
                         </div>
                       ) : (
-                        <div className="mt-4">
+                        <div className="mt-3">
                           <CreateAddressModal
                             callback={(address) => {
-                              setShippingAddress(address)
+                              setBillingAddress(address)
                             }}
                             disabled={!email}
                             skipSubmission={true}
@@ -346,7 +384,7 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
                 </section>
 
                 {/* Shipping Method Section */}
-                <section>
+                <section className="rounded-xl border border-border bg-card p-4 lg:border-0 lg:bg-transparent lg:p-0">
                   <h2 className="text-lg font-medium text-foreground">Shipping method</h2>
                   <ShippingMethodSelector
                     subtotal={cartSubtotal}
@@ -359,12 +397,7 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
                 <button
                   type="button"
                   disabled={!canGoToPayment}
-                  onClick={() => {
-                    if (!user && emailEditable) {
-                      setEmailEditable(false)
-                    }
-                    void initiatePaymentIntent('stripe')
-                  }}
+                  onClick={() => void initiatePaymentIntent('stripe')}
                   className="w-full rounded-md bg-secondary px-4 py-3 text-base font-medium text-secondary-foreground shadow-sm hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 focus:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                 >
                   Continue to payment
@@ -388,11 +421,98 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
               </div>
             ) : null}
 
-            {/* Step 1: Payment */}
+            {/* Step 1: Payment - Order Summary + Payment Form */}
             {isStep1 && paymentData?.['clientSecret'] ? (
-              <div className="space-y-8">
-                <section>
-                  <h2 className="text-lg font-medium text-foreground">Payment details</h2>
+              <div className="space-y-6">
+                {/* Order Summary */}
+                <section className="rounded-xl border border-border bg-card p-4">
+                  <h2 className="text-lg font-medium text-foreground mb-4">Order summary</h2>
+                  <ul role="list" className="divide-y divide-border">
+                    {cart?.items?.map((item, index) => {
+                      if (typeof item.product === 'object' && item.product) {
+                        const {
+                          product,
+                          product: { title, gallery },
+                          quantity,
+                          variant,
+                        } = item
+
+                        if (!quantity) return null
+
+                        let image = gallery?.[0]?.image || product?.meta?.image
+                        let price = product?.priceInGBP
+
+                        const isVariant = Boolean(variant) && typeof variant === 'object'
+
+                        if (isVariant) {
+                          price = variant?.priceInGBP
+                          const imageVariant = product.gallery?.find((galleryItem) => {
+                            if (!galleryItem.variantOption) return false
+                            const variantOptionID =
+                              typeof galleryItem.variantOption === 'object'
+                                ? galleryItem.variantOption.id
+                                : galleryItem.variantOption
+                            const hasMatch = variant?.options?.some((option) => {
+                              if (typeof option === 'object') return option.id === variantOptionID
+                              else return option === variantOptionID
+                            })
+                            return hasMatch
+                          })
+                          if (imageVariant && typeof imageVariant.image !== 'string') {
+                            image = imageVariant.image
+                          }
+                        }
+
+                        return (
+                          <li key={index} className="flex gap-3 py-3 first:pt-0 last:pb-0">
+                            <div className="size-14 flex-none rounded-md bg-muted dark:bg-muted/30 overflow-hidden relative">
+                              {image && typeof image !== 'string' && (
+                                <Media fill imgClassName="size-full object-cover" resource={image} />
+                              )}
+                            </div>
+                            <div className="flex-auto min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{title}</p>
+                              {variant && typeof variant === 'object' && (
+                                <p className="text-xs text-muted-foreground">
+                                  {variant.options?.map((option) => typeof option === 'object' ? option.label : null).filter(Boolean).join(', ')}
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground">Qty: {quantity}</p>
+                            </div>
+                            <div className="text-sm font-medium text-foreground">
+                              {typeof price === 'number' && <Price amount={price * quantity} />}
+                            </div>
+                          </li>
+                        )
+                      }
+                      return null
+                    })}
+                  </ul>
+                  <dl className="mt-4 pt-4 border-t border-border space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <dt className="text-muted-foreground">Subtotal</dt>
+                      <dd className="text-foreground"><Price amount={cartSubtotal} /></dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-muted-foreground">Shipping</dt>
+                      <dd className="text-foreground">
+                        {shippingCost === 0 ? (
+                          <span className="text-green-600 dark:text-green-500">Free</span>
+                        ) : (
+                          <Price amount={shippingCost} />
+                        )}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-border font-medium">
+                      <dt className="text-foreground">Total</dt>
+                      <dd className="text-foreground"><Price amount={orderTotal} /></dd>
+                    </div>
+                  </dl>
+                </section>
+
+                {/* Payment Form */}
+                <section className="rounded-xl border border-border bg-card p-4">
+                  <h2 className="text-lg font-medium text-foreground">Payment</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Enter your card information to complete your purchase.
                   </p>
@@ -404,7 +524,7 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
                   )}
 
                   <Suspense fallback={<React.Fragment />}>
-                    <div className="mt-6">
+                    <div className="mt-4">
                       <Elements
                         options={{
                           appearance: {
@@ -438,7 +558,7 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
                       >
                         <CheckoutForm
                           customerEmail={email}
-                          billingAddress={billingAddress}
+                          billingAddress={useDifferentBillingAddress ? billingAddress : shippingAddress}
                           setProcessingPayment={setProcessingPayment}
                         />
                       </Elements>
@@ -456,139 +576,10 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
                   className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ArrowLeftIcon className="size-4" />
-                  Back to contact & address
+                  Back to shipping
                 </button>
               </div>
             ) : null}
-          </div>
-
-          {/* Right Column - Order Summary */}
-          <div className="mx-auto w-full max-w-lg">
-            <h2 className="text-lg font-medium text-foreground">Order summary</h2>
-
-            <div className="mt-6 flow-root">
-              <ul role="list" className="-my-6 divide-y divide-border">
-                {cart?.items?.map((item, index) => {
-                  if (typeof item.product === 'object' && item.product) {
-                    const {
-                      product,
-                      product: { id, meta, title, gallery },
-                      quantity,
-                      variant,
-                    } = item
-
-                    if (!quantity) return null
-
-                    let image = gallery?.[0]?.image || meta?.image
-                    let price = product?.priceInGBP
-
-                    const isVariant = Boolean(variant) && typeof variant === 'object'
-
-                    if (isVariant) {
-                      price = variant?.priceInGBP
-
-                      const imageVariant = product.gallery?.find((item) => {
-                        if (!item.variantOption) return false
-                        const variantOptionID =
-                          typeof item.variantOption === 'object'
-                            ? item.variantOption.id
-                            : item.variantOption
-
-                        const hasMatch = variant?.options?.some((option) => {
-                          if (typeof option === 'object') return option.id === variantOptionID
-                          else return option === variantOptionID
-                        })
-
-                        return hasMatch
-                      })
-
-                      if (imageVariant && typeof imageVariant.image !== 'string') {
-                        image = imageVariant.image
-                      }
-                    }
-
-                    return (
-                      <li key={index} className="flex space-x-6 py-6">
-                        <div className="size-24 flex-none rounded-md bg-muted dark:bg-muted/30 overflow-hidden relative">
-                          {image && typeof image !== 'string' && (
-                            <Media
-                              fill
-                              imgClassName="size-full object-cover"
-                              resource={image}
-                            />
-                          )}
-                        </div>
-                        <div className="flex-auto">
-                          <div className="space-y-1">
-                            <h3 className="font-medium text-foreground">
-                              <Link href={`/products/${product.slug}`}>{title}</Link>
-                            </h3>
-                            {typeof price === 'number' && (
-                              <p className="text-foreground">
-                                <Price amount={price} />
-                              </p>
-                            )}
-                            {variant && typeof variant === 'object' && (
-                              <p className="text-sm text-muted-foreground">
-                                {variant.options
-                                  ?.map((option) => {
-                                    if (typeof option === 'object') return option.label
-                                    return null
-                                  })
-                                  .join(', ')}
-                              </p>
-                            )}
-                            <p className="text-sm text-muted-foreground">Qty: {quantity}</p>
-                          </div>
-                        </div>
-                      </li>
-                    )
-                  }
-                  return null
-                })}
-              </ul>
-            </div>
-
-            <dl className="mt-10 space-y-4 text-sm font-medium text-muted-foreground">
-              <div className="flex justify-between">
-                <dt>Subtotal</dt>
-                <dd className="text-foreground">
-                  <Price amount={cartSubtotal} />
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>Shipping</dt>
-                <dd className="text-foreground">
-                  {selectedShippingMethod ? (
-                    shippingCost === 0 ? (
-                      <span className="text-green-600 dark:text-green-500">Free</span>
-                    ) : (
-                      <Price amount={shippingCost} />
-                    )
-                  ) : (
-                    <span className="text-muted-foreground">Select method</span>
-                  )}
-                </dd>
-              </div>
-              <div className="flex justify-between border-t border-border pt-4 text-foreground">
-                <dt className="text-base">Total</dt>
-                <dd className="text-base">
-                  <Price amount={orderTotal} />
-                </dd>
-              </div>
-            </dl>
-
-            {/* Continue Shopping Link */}
-            <div className="mt-8">
-              <Link
-                href="/products"
-                className="flex items-center gap-2 text-sm font-medium text-secondary hover:text-secondary/80"
-              >
-                <ArrowLeftIcon className="size-4" />
-                Continue shopping
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -22,6 +22,10 @@ type Props = {
    * Hide all actions
    */
   hideActions?: boolean
+  /**
+   * Compact display mode - hides actions and uses condensed layout
+   */
+  compact?: boolean
 }
 
 export const AddressItem: React.FC<Props> = ({
@@ -30,9 +34,24 @@ export const AddressItem: React.FC<Props> = ({
   hideActions = false,
   beforeActions,
   afterActions,
+  compact = false,
 }) => {
   if (!address) {
     return null
+  }
+
+  // Compact mode - single line with key info
+  if (compact) {
+    return (
+      <div className="text-sm">
+        <p className="font-medium text-foreground">
+          {address.firstName} {address.lastName}
+        </p>
+        <p className="text-muted-foreground">
+          {address.addressLine1}, {address.city} {address.postalCode}
+        </p>
+      </div>
+    )
   }
 
   return (

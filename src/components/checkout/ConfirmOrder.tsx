@@ -6,6 +6,7 @@
 import { useCart, usePayments } from '@payloadcms/plugin-ecommerce/client/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef } from 'react'
+import { CheckCircleIcon } from '@heroicons/react/24/outline'
 
 export const ConfirmOrder: React.FC = () => {
   const { confirmOrder } = usePayments()
@@ -34,7 +35,9 @@ export const ConfirmOrder: React.FC = () => {
           },
         }).then((result) => {
           if (result && typeof result === 'object' && 'orderID' in result && result.orderID) {
-            router.push(`/orders/${result.orderID}?email=${email}`)
+            // Redirect with new=true to show thank you message
+            const emailParam = email ? `&email=${email}` : ''
+            router.push(`/orders/${result.orderID}?new=true${emailParam}`)
           }
         })
       }
@@ -45,34 +48,33 @@ export const ConfirmOrder: React.FC = () => {
   }, [cart, searchParams, confirmOrder, router])
 
   return (
-    <div className="min-h-[50vh] flex flex-col items-center justify-center px-4">
-      <div className="text-center">
-        <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-full bg-secondary/10 dark:bg-secondary/20">
-          <svg
-            className="size-8 text-secondary animate-spin"
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
+    <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
+      <div className="text-center max-w-md">
+        {/* Animated success/loading indicator */}
+        <div className="mx-auto mb-8 relative">
+          <div className="size-20 rounded-full bg-secondary/10 dark:bg-secondary/20 flex items-center justify-center">
+            <CheckCircleIcon className="size-10 text-secondary animate-pulse" />
+          </div>
+          {/* Spinning ring */}
+          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-secondary animate-spin" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Confirming your order
+
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          Completing your order
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Please wait while we process your payment...
+        <p className="mt-3 text-base text-muted-foreground">
+          We're processing your payment and confirming your order. This will only take a moment.
+        </p>
+
+        {/* Progress dots */}
+        <div className="mt-8 flex justify-center gap-2">
+          <span className="size-2 rounded-full bg-secondary animate-bounce" style={{ animationDelay: '0ms' }} />
+          <span className="size-2 rounded-full bg-secondary animate-bounce" style={{ animationDelay: '150ms' }} />
+          <span className="size-2 rounded-full bg-secondary animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+
+        <p className="mt-6 text-xs text-muted-foreground">
+          Please don't close this page
         </p>
       </div>
     </div>

@@ -10,50 +10,60 @@ import React, { useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 
 type Props = {
-  product: Product
+  product: Product | null | undefined
 }
 
 export function AddToCart({ product }: Props) {
   const { addItem, cart } = useCart()
   const searchParams = useSearchParams()
 
-  const variants = product.variants?.docs || []
+  // Filter out null/undefined variants
+  const variants = (product?.variants?.docs || []).filter(
+    (v): v is Variant => v !== null && v !== undefined && typeof v === 'object' && typeof v.id === 'number'
+  )
 
   const selectedVariant = useMemo<Variant | undefined>(() => {
+    if (!product) return undefined
     if (product.enableVariants && variants.length) {
       const variantId = searchParams.get('variant')
+      if (!variantId) return undefined
 
-      const validVariant = variants.find((variant) => {
-        if (typeof variant === 'object') {
-          return String(variant.id) === variantId
-        }
-        return String(variant) === variantId
-      })
-
-      if (validVariant && typeof validVariant === 'object') {
-        return validVariant
-      }
+      const validVariant = variants.find((variant) => String(variant.id) === variantId)
+      return validVariant
     }
 
     return undefined
-  }, [product.enableVariants, searchParams, variants])
+  }, [product, searchParams, variants])
 
   const addToCart = useCallback(
     (e: React.FormEvent<HTMLButtonElement>) => {
       e.preventDefault()
 
+      if (!product?.id) return
+
+      // Only pass variant ID if it's a valid number
+      const variantId = selectedVariant?.id
+      const validVariantId = typeof variantId === 'number' ? variantId : undefined
+
       addItem({
         product: product.id,
-        variant: selectedVariant?.id ?? undefined,
+        variant: validVariantId,
       }).then(() => {
         toast.success('Item added to cart.')
       })
     },
-    [addItem, product, selectedVariant],
+    [addItem, product?.id, selectedVariant],
   )
 
   const disabled = useMemo<boolean>(() => {
-    const existingItem = cart?.items?.find((item) => {
+    if (!product?.id) return true
+
+    // Filter out any null/undefined cart items
+    const validCartItems = (cart?.items || []).filter(
+      (item) => item && item.product
+    )
+
+    const existingItem = validCartItems.find((item) => {
       const productID = typeof item.product === 'object' ? item.product?.id : item.product
       const variantID = item.variant
         ? typeof item.variant === 'object'
@@ -94,6 +104,11 @@ export function AddToCart({ product }: Props) {
 
     return false
   }, [selectedVariant, cart?.items, product])
+
+  // Guard after all hooks
+  if (!product || !product.id) {
+    return null
+  }
 
   return (
     <button

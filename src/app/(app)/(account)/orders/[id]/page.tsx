@@ -13,7 +13,7 @@ import { getPayload } from 'payload'
 import { RefundRequestForm } from '@/components/refunds/RefundRequestForm'
 import { RefundStatus } from '@/components/refunds/RefundStatus'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
-import { ShoppingBagIcon } from '@heroicons/react/24/outline'
+import { ShoppingBagIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,7 +69,7 @@ function getStatusDisplay(status: string) {
 
 type PageProps = {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ email?: string }>
+  searchParams: Promise<{ email?: string; new?: string }>
 }
 
 export default async function Order({ params, searchParams }: PageProps) {
@@ -78,7 +78,7 @@ export default async function Order({ params, searchParams }: PageProps) {
   const { user } = await payload.auth({ headers })
 
   const { id } = await params
-  const { email = '' } = await searchParams
+  const { email = '', new: isNewOrder } = await searchParams
 
   let order: Order | null = null
 
@@ -183,8 +183,32 @@ export default async function Order({ params, searchParams }: PageProps) {
   const statusDisplay = order.status ? getStatusDisplay(order.status) : null
   const itemsCount = order.items?.length || 0
 
+  // Check if refunds should be shown - only for completed orders
+  const showRefundsSection =
+    order.status === 'completed' ||
+    order.status === 'refund_requested'
+
   return (
     <>
+      {/* Thank You Banner for new orders */}
+      {isNewOrder === 'true' && (
+        <div className="mt-6 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50">
+              <CheckCircleIcon className="size-6 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-green-800 dark:text-green-300">
+                Thank you for your order!
+              </h2>
+              <p className="mt-1 text-sm text-green-700 dark:text-green-400">
+                Your order has been confirmed and is being processed. You'll receive a confirmation email shortly with your order details.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Breadcrumbs */}
       <div className="py-6">
         <Breadcrumbs
@@ -323,32 +347,30 @@ export default async function Order({ params, searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* Refund Section */}
-      {order.status !== 'refunded' &&
-        order.status !== 'partially_refunded' &&
-        order.status !== 'cancelled' && (
-          <div className="mt-6 rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-foreground">Refunds</h3>
-              {!activeRefundRequest && (
-                <RefundRequestForm
-                  order={order}
-                  userEmail={user?.email || order.customerEmail || undefined}
-                />
-              )}
-            </div>
-
-            {activeRefundRequest ? (
-              <div className="mt-4">
-                <RefundStatus refundRequest={activeRefundRequest} />
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-muted-foreground">
-                No refund requests for this order.
-              </p>
+      {/* Refund Section - only show for completed orders */}
+      {showRefundsSection && (
+        <div className="mt-6 rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-foreground">Refunds</h3>
+            {!activeRefundRequest && (
+              <RefundRequestForm
+                order={order}
+                userEmail={user?.email || order.customerEmail || undefined}
+              />
             )}
           </div>
-        )}
+
+          {activeRefundRequest ? (
+            <div className="mt-4">
+              <RefundStatus refundRequest={activeRefundRequest} />
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">
+              No refund requests for this order.
+            </p>
+          )}
+        </div>
+      )}
     </>
   )
 }

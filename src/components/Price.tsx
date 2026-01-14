@@ -6,6 +6,7 @@ type BaseProps = {
   className?: string
   currencyCodeClassName?: string
   as?: 'span' | 'p' | 'div'
+  showFrom?: boolean
 }
 
 type PriceFixed = {
@@ -31,10 +32,12 @@ export const Price = ({
   lowestAmount,
   currencyCode: currencyCodeFromProps,
   as = 'span',
+  showFrom = false,
 }: Props & React.ComponentProps<'span'>) => {
   const { formatCurrency, supportedCurrencies } = useCurrency()
 
   const Element = as
+  const fromPrefix = showFrom ? 'From ' : ''
 
   const currencyToUse = useMemo(() => {
     if (currencyCodeFromProps) {
@@ -46,7 +49,7 @@ export const Price = ({
   if (typeof amount === 'number') {
     return (
       <Element className={className} suppressHydrationWarning>
-        {formatCurrency(amount, { currency: currencyToUse })}
+        {fromPrefix}{formatCurrency(amount, { currency: currencyToUse })}
       </Element>
     )
   }

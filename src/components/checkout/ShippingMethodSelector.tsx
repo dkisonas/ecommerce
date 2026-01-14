@@ -85,10 +85,10 @@ export function ShippingMethodSelector({
             type="button"
             onClick={() => onSelect(method, effectiveCost)}
             className={cn(
-              'w-full rounded-lg border p-4 text-left transition-colors',
+              'w-full rounded-lg border p-4 text-left transition-all duration-150 cursor-pointer',
               isSelected
-                ? 'border-secondary bg-secondary/5 dark:bg-secondary/10'
-                : 'border-border bg-muted/30 dark:bg-muted/10 hover:border-secondary/50',
+                ? 'border-secondary bg-secondary/5 dark:bg-secondary/10 ring-1 ring-secondary'
+                : 'border-border bg-muted/30 dark:bg-muted/10 hover:border-secondary hover:bg-secondary/5 dark:hover:bg-secondary/10 hover:shadow-sm',
             )}
           >
             <div className="flex items-start justify-between gap-4">
