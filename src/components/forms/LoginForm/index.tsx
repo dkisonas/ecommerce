@@ -4,6 +4,9 @@
 // Adapted for: React, Tailwind v4, dark mode support
 
 import { Message } from '@/components/Message'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useAuth } from '@/providers/Auth'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -43,65 +46,55 @@ export const LoginForm: React.FC = () => {
   )
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+    <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
       <Message error={error} />
 
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-foreground">
-          Email address
-        </label>
-        <div className="mt-2">
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            {...register('email', { required: 'Email is required.' })}
-            className="block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="email">Email address</Label>
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          aria-invalid={errors.email ? 'true' : 'false'}
+          {...register('email', { required: 'Email is required.' })}
+        />
         {errors.email && (
-          <p className="mt-2 text-sm text-destructive">{errors.email.message}</p>
+          <p className="text-sm text-destructive">{errors.email.message}</p>
         )}
       </div>
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-foreground">
-          Password
-        </label>
-        <div className="mt-2">
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            {...register('password', { required: 'Please provide a password.' })}
-            className="block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          aria-invalid={errors.password ? 'true' : 'false'}
+          {...register('password', { required: 'Please provide a password.' })}
+        />
         {errors.password && (
-          <p className="mt-2 text-sm text-destructive">{errors.password.message}</p>
+          <p className="text-sm text-destructive">{errors.password.message}</p>
         )}
       </div>
 
       <div className="flex items-center justify-end">
-        <div className="text-sm">
-          <Link
-            href={`/forgot-password${allParams}`}
-            className="font-medium text-secondary hover:text-secondary/80"
-          >
-            Forgot your password?
-          </Link>
-        </div>
+        <Link
+          href={`/forgot-password${allParams}`}
+          className="text-sm font-medium text-secondary hover:text-secondary/80"
+        >
+          Forgot your password?
+        </Link>
       </div>
 
-      <div>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="flex w-full justify-center rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {isLoading ? 'Signing in...' : 'Sign in'}
-        </button>
-      </div>
+      <Button
+        type="submit"
+        variant="secondary"
+        size="lg"
+        disabled={isLoading}
+        className="w-full"
+      >
+        {isLoading ? 'Signing in...' : 'Sign in'}
+      </Button>
     </form>
   )
 }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useAuth } from '@/providers/Auth'
+import { TrackOrderModal } from '@/components/TrackOrderModal'
 
 export function FooterAccountLinks() {
   const { user, status } = useAuth()
@@ -73,12 +74,13 @@ export function FooterAccountLinks() {
         </Link>
       </li>
       <li>
-        <Link
-          href="/track-order"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Track Order
-        </Link>
+        <TrackOrderModal
+          trigger={
+            <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+              Track Order
+            </span>
+          }
+        />
       </li>
     </ul>
   )

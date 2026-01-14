@@ -22,6 +22,7 @@ import { CMSLink } from '@/components/Link'
 import { Logo } from '@/components/Logo'
 import { HeaderActions } from './HeaderActions'
 import { CartModal } from '@/components/Cart/CartModal'
+import { TrackOrderModal } from '@/components/TrackOrderModal'
 import { cn } from '@/utilities/cn'
 import { useAuth } from '@/providers/Auth'
 
@@ -190,6 +191,16 @@ export function HeaderClient({ header, settings, user }: Props) {
                               Create account
                             </Link>
                           </MenuItem>
+                          <div className="my-2 border-t border-border" />
+                          <MenuItem>
+                            <TrackOrderModal
+                              trigger={
+                                <span className="block px-4 py-3 text-base font-medium text-foreground data-focus:bg-muted cursor-pointer hover:bg-muted">
+                                  Track order
+                                </span>
+                              }
+                            />
+                          </MenuItem>
                         </>
                       )}
                     </div>
@@ -215,7 +226,7 @@ export function HeaderClient({ header, settings, user }: Props) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setIsSearchFocused(false)}
-                  className="w-full rounded-full border-2 border-border bg-white dark:bg-muted/20 py-2.5 pl-4 pr-12 text-base text-foreground placeholder:text-muted-foreground outline-none focus:!border-secondary focus:outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 !shadow-none transition-colors appearance-none"
+                  className="w-full rounded-full border-2 border-border bg-white dark:bg-muted/20 py-2.5 pl-4 pr-12 text-base text-foreground placeholder:text-muted-foreground focus:border-secondary shadow-none transition-colors appearance-none"
                 />
                 <button
                   type="submit"
@@ -243,19 +254,18 @@ export function HeaderClient({ header, settings, user }: Props) {
               {/* Search Bar - Center */}
               <form onSubmit={handleSearch} className="flex-1 max-w-xl">
                 <div className="relative">
-                  <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
                   <input
                     type="search"
-                    placeholder="Search for products..."
+                    placeholder="Search products..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}
                     onBlur={() => setIsSearchFocused(false)}
-                    className="w-full rounded-full border-2 border-border bg-white dark:bg-muted/20 py-3 pl-12 pr-14 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:!border-secondary focus:outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 !shadow-none transition-colors appearance-none"
+                    className="w-full rounded-full border-2 border-border bg-white dark:bg-muted/20 py-2.5 pl-4 pr-12 text-base text-foreground placeholder:text-muted-foreground focus:border-secondary shadow-none transition-colors appearance-none"
                   />
                   <button
                     type="submit"
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center size-10 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center size-9 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors mr-0.5"
                     aria-label="Search"
                   >
                     <MagnifyingGlassIcon className="size-5" />

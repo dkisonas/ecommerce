@@ -2,12 +2,13 @@
 // Version: 2026-01-12-184920
 // Adapted for: React, Tailwind v4, dark mode support (manually added)
 
-import type { Media, Product } from '@/payload-types'
+import type { Media, Product, Setting } from '@/payload-types'
 
 import { Gallery } from '@/components/product/Gallery'
 import { ProductDescription } from '@/components/product/ProductDescription'
 import { ProductGridItem } from '@/components/ProductGridItem'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { getCachedGlobal } from '@/utilities/getGlobals'
 import configPromise from '@payload-config'
 import { Metadata } from 'next'
 import { draftMode } from 'next/headers'
@@ -62,7 +63,10 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Args) {
   const { slug } = await params
-  const product = await queryProductBySlug({ slug })
+  const [product, settings] = await Promise.all([
+    queryProductBySlug({ slug }),
+    getCachedGlobal('settings', 2)() as Promise<Setting>,
+  ])
 
   if (!product) return notFound()
 
@@ -143,7 +147,7 @@ export default async function ProductPage({ params }: Args) {
 
             {/* Product info */}
             <div className="mt-10 px-4 sm:mt-16 sm:px-0 lg:mt-0">
-              <ProductDescription product={product} />
+              <ProductDescription product={product} settings={settings} />
             </div>
           </div>
         </div>

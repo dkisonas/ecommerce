@@ -7,6 +7,9 @@
 import { Media } from '@/components/Media'
 import { Message } from '@/components/Message'
 import { Price } from '@/components/Price'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useAuth } from '@/providers/Auth'
 import { useTheme } from '@/providers/Theme'
 import { Elements } from '@stripe/react-stripe-js'
@@ -230,66 +233,56 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-4">
-                        <div>
-                          <label htmlFor="first-name" className="block text-sm font-medium text-foreground">
-                            First name
-                          </label>
-                          <input
+                        <div className="space-y-2">
+                          <Label htmlFor="first-name">First name</Label>
+                          <Input
                             id="first-name"
                             name="first-name"
                             type="text"
                             autoComplete="given-name"
                             value={firstName}
                             onChange={(e) => setFirstName(e.target.value)}
-                            className="mt-1 block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
                             placeholder="John"
                           />
                         </div>
-                        <div>
-                          <label htmlFor="last-name" className="block text-sm font-medium text-foreground">
-                            Last name
-                          </label>
-                          <input
+                        <div className="space-y-2">
+                          <Label htmlFor="last-name">Last name</Label>
+                          <Input
                             id="last-name"
                             name="last-name"
                             type="text"
                             autoComplete="family-name"
                             value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
-                            className="mt-1 block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
                             placeholder="Doe"
                           />
                         </div>
                       </div>
 
-                      <div className="mt-4">
-                        <label htmlFor="email-address" className="block text-sm font-medium text-foreground">
-                          Email
-                        </label>
-                        <input
+                      <div className="mt-4 space-y-2">
+                        <Label htmlFor="email-address">Email</Label>
+                        <Input
                           id="email-address"
                           name="email-address"
                           type="email"
                           autoComplete="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="mt-1 block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
                           placeholder="you@example.com"
                         />
                       </div>
 
-                      <div className="mt-4">
-                        <label htmlFor="phone" className="block text-sm font-medium text-foreground">
-                          Phone <span className="text-muted-foreground">(optional)</span>
-                        </label>
-                        <input
+                      <div className="mt-4 space-y-2">
+                        <Label htmlFor="phone">
+                          Phone <span className="text-muted-foreground font-normal">(optional)</span>
+                        </Label>
+                        <Input
                           id="phone"
                           name="phone"
                           type="tel"
                           autoComplete="tel"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
-                          className="mt-1 block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
                           placeholder="+370 600 00000"
                         />
                       </div>
@@ -394,14 +387,16 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
                 </section>
 
                 {/* Continue Button */}
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="lg"
                   disabled={!canGoToPayment}
                   onClick={() => void initiatePaymentIntent('stripe')}
-                  className="w-full rounded-md bg-secondary px-4 py-3 text-base font-medium text-secondary-foreground shadow-sm hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 focus:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                  className="w-full"
                 >
                   Continue to payment
-                </button>
+                </Button>
 
                 {error && !paymentData && (
                   <div className="mt-4">

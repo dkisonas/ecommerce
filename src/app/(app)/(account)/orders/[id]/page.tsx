@@ -326,22 +326,32 @@ export default async function Order({ params, searchParams }: PageProps) {
         {/* Order Summary */}
         <div className="rounded-xl border border-border bg-card p-4">
           <h3 className="text-sm font-medium text-foreground">Order summary</h3>
-          <dl className="mt-2 space-y-2 text-sm">
+          <dl className="mt-3 space-y-2 text-sm">
             {typeof order.amount === 'number' && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Total</dt>
-                <dd className="font-medium text-foreground">
-                  <Price amount={order.amount} currencyCode={order.currency ?? undefined} />
-                </dd>
-              </div>
-            )}
-            {typeof order.totalRefunded === 'number' && order.totalRefunded > 0 && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Refunded</dt>
-                <dd className="text-green-600 dark:text-green-400">
-                  -<Price amount={order.totalRefunded} currencyCode={order.currency ?? undefined} />
-                </dd>
-              </div>
+              <>
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">Order total</dt>
+                  <dd className="font-semibold text-foreground text-base">
+                    <Price amount={order.amount} currencyCode={order.currency ?? undefined} />
+                  </dd>
+                </div>
+                {typeof order.totalRefunded === 'number' && order.totalRefunded > 0 && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted-foreground">Refunded</dt>
+                      <dd className="text-green-600 dark:text-green-400">
+                        -<Price amount={order.totalRefunded} currencyCode={order.currency ?? undefined} />
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-border">
+                      <dt className="font-medium text-foreground">Amount paid</dt>
+                      <dd className="font-semibold text-foreground text-base">
+                        <Price amount={order.amount - order.totalRefunded} currencyCode={order.currency ?? undefined} />
+                      </dd>
+                    </div>
+                  </>
+                )}
+              </>
             )}
           </dl>
         </div>

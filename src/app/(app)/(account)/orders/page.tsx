@@ -11,7 +11,16 @@ import { Price } from '@/components/Price'
 import { Media } from '@/components/Media'
 import { formatDateTime } from '@/utilities/formatDateTime'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { ProductsPagination } from '@/components/ProductsPagination'
 import { ShoppingBagIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+
+const ORDERS_PER_PAGE = 15
+
+type SearchParams = { [key: string]: string | string[] | undefined }
+
+type Props = {
+  searchParams: Promise<SearchParams>
+}
 
 // Status display helper
 function getStatusDisplay(status: string) {
@@ -63,22 +72,26 @@ function getStatusDisplay(status: string) {
   }
 }
 
-export default async function Orders() {
+export default async function Orders({ searchParams }: Props) {
+  const { page } = await searchParams
   const headers = await getHeaders()
   const payload = await getPayload({ config: configPromise })
   const { user } = await payload.auth({ headers })
+  const currentPage = page ? Math.max(1, parseInt(String(page), 10)) : 1
 
   if (!user) {
     redirect(`/login?redirect=/orders`)
   }
 
   let orders: Order[] = []
+  let totalPages = 1
+  let totalOrders = 0
 
   try {
     const ordersResult = await payload.find({
       collection: 'orders',
-      limit: 0,
-      pagination: false,
+      limit: ORDERS_PER_PAGE,
+      page: currentPage,
       sort: '-createdAt',
       user,
       overrideAccess: false,
@@ -90,6 +103,8 @@ export default async function Orders() {
     })
 
     orders = ordersResult?.docs || []
+    totalPages = ordersResult?.totalPages || 1
+    totalOrders = ordersResult?.totalDocs || 0
   } catch (_error) {
     // Silently handle error
   }
@@ -180,6 +195,15 @@ export default async function Orders() {
             )
           })}
         </div>
+      )}
+
+      {/* Pagination */}
+      {orders.length > 0 && (
+        <ProductsPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          baseUrl="/orders?"
+        />
       )}
     </>
   )

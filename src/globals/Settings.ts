@@ -95,6 +95,50 @@ export const Settings: GlobalConfig = {
             },
           ],
         },
+        {
+          label: 'Store Policies',
+          description: 'Shipping and returns messaging shown on product pages',
+          fields: [
+            {
+              type: 'group',
+              name: 'shipping',
+              label: 'Shipping',
+              fields: [
+                {
+                  name: 'title',
+                  type: 'text',
+                  label: 'Title',
+                  defaultValue: 'Free shipping over £50',
+                },
+                {
+                  name: 'description',
+                  type: 'text',
+                  label: 'Description',
+                  defaultValue: 'Standard delivery 3-5 business days',
+                },
+              ],
+            },
+            {
+              type: 'group',
+              name: 'returns',
+              label: 'Returns',
+              fields: [
+                {
+                  name: 'title',
+                  type: 'text',
+                  label: 'Title',
+                  defaultValue: 'Free 30-day returns',
+                },
+                {
+                  name: 'description',
+                  type: 'text',
+                  label: 'Description',
+                  defaultValue: 'Hassle-free returns on all orders',
+                },
+              ],
+            },
+          ],
+        },
       ],
     },
   ],

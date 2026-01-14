@@ -4,6 +4,9 @@
 // Adapted for: React, Tailwind v4, dark mode support
 
 import { Message } from '@/components/Message'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useAuth } from '@/providers/Auth'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useRef, useState } from 'react'
@@ -68,75 +71,63 @@ export const CreateAccountForm: React.FC = () => {
   )
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+    <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
       <Message error={error} />
 
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-foreground">
-          Email address
-        </label>
-        <div className="mt-2">
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            {...register('email', { required: 'Email is required.' })}
-            className="block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="email">Email address</Label>
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          aria-invalid={errors.email ? 'true' : 'false'}
+          {...register('email', { required: 'Email is required.' })}
+        />
         {errors.email && (
-          <p className="mt-2 text-sm text-destructive">{errors.email.message}</p>
+          <p className="text-sm text-destructive">{errors.email.message}</p>
         )}
       </div>
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-foreground">
-          Password
-        </label>
-        <div className="mt-2">
-          <input
-            id="password"
-            type="password"
-            autoComplete="new-password"
-            {...register('password', { required: 'Password is required.' })}
-            className="block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          type="password"
+          autoComplete="new-password"
+          aria-invalid={errors.password ? 'true' : 'false'}
+          {...register('password', { required: 'Password is required.' })}
+        />
         {errors.password && (
-          <p className="mt-2 text-sm text-destructive">{errors.password.message}</p>
+          <p className="text-sm text-destructive">{errors.password.message}</p>
         )}
       </div>
 
-      <div>
-        <label htmlFor="passwordConfirm" className="block text-sm font-medium text-foreground">
-          Confirm password
-        </label>
-        <div className="mt-2">
-          <input
-            id="passwordConfirm"
-            type="password"
-            autoComplete="new-password"
-            {...register('passwordConfirm', {
-              required: 'Please confirm your password.',
-              validate: (value) => value === password.current || 'The passwords do not match',
-            })}
-            className="block w-full rounded-md bg-background dark:bg-muted/10 px-3 py-2 text-base text-foreground border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="passwordConfirm">Confirm password</Label>
+        <Input
+          id="passwordConfirm"
+          type="password"
+          autoComplete="new-password"
+          aria-invalid={errors.passwordConfirm ? 'true' : 'false'}
+          {...register('passwordConfirm', {
+            required: 'Please confirm your password.',
+            validate: (value) => value === password.current || 'The passwords do not match',
+          })}
+        />
         {errors.passwordConfirm && (
-          <p className="mt-2 text-sm text-destructive">{errors.passwordConfirm.message}</p>
+          <p className="text-sm text-destructive">{errors.passwordConfirm.message}</p>
         )}
       </div>
 
-      <div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex w-full justify-center rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? 'Creating account...' : 'Create account'}
-        </button>
-      </div>
+      <Button
+        type="submit"
+        variant="secondary"
+        size="lg"
+        disabled={loading}
+        className="w-full"
+      >
+        {loading ? 'Creating account...' : 'Create account'}
+      </Button>
     </form>
   )
 }

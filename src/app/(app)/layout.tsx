@@ -60,13 +60,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <link href="/favicon.ico" rel="icon" sizes="32x32" />
         <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
       </head>
-      <body data-admin-bar={isAdmin ? 'visible' : undefined}>
+      <body data-admin-bar={isAdmin ? 'visible' : undefined} className="flex min-h-screen flex-col">
         <Providers>
           {isAdmin && <AdminBar />}
           <LivePreviewListener />
 
           <Header />
-          <main className="pb-16">{children}</main>
+          <main className="flex-1 pb-16">{children}</main>
           <Footer />
         </Providers>
       </body>

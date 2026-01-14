@@ -1848,6 +1848,14 @@ export interface Setting {
    * Email address where form submissions will be sent. Leave empty to disable email notifications.
    */
   formSubmissionEmail?: string | null;
+  shipping?: {
+    title?: string | null;
+    description?: string | null;
+  };
+  returns?: {
+    title?: string | null;
+    description?: string | null;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1940,6 +1948,18 @@ export interface SettingsSelect<T extends boolean = true> {
   logoDark?: T;
   enableDarkMode?: T;
   formSubmissionEmail?: T;
+  shipping?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+      };
+  returns?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

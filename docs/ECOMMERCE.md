@@ -260,6 +260,128 @@ Sent automatically when order is created:
 
 Customers can check refund status through their order page at `/orders/[id]`.
 
+## Payment Architecture (Future)
+
+This section documents the architecture for supporting multiple payment providers beyond Stripe.
+
+### Overview
+
+The current system is tightly coupled to Stripe. To support multiple payment providers (Paysera, Neopay, etc.), the system should be refactored to use a provider-agnostic interface.
+
+### Payment Provider Interface
+
+```typescript
+// src/lib/payments/types.ts
+interface PaymentProvider {
+  id: string                    // e.g., 'stripe', 'paysera', 'neopay'
+  name: string                  // Display name
+  icon?: string                 // Icon path or URL
+
+  // Core methods
+  createPaymentIntent(order: Order): Promise<PaymentIntent>
+  confirmPayment(paymentId: string): Promise<PaymentResult>
+  refundPayment(paymentId: string, amount: number): Promise<RefundResult>
+
+  // Webhook handling
+  handleWebhook(payload: unknown, signature: string): Promise<WebhookResult>
+}
+
+interface PaymentIntent {
+  id: string
+  clientSecret?: string         // For client-side confirmation (Stripe)
+  redirectUrl?: string          // For redirect-based providers (Paysera)
+  amount: number
+  currency: string
+}
+
+interface PaymentResult {
+  success: boolean
+  transactionId?: string
+  error?: string
+}
+```
+
+### Settings Configuration
+
+Add payment method toggles to Settings global:
+
+```typescript
+// In src/globals/Settings.ts, add to tabs:
+{
+  label: 'Payments',
+  fields: [
+    {
+      name: 'enabledPaymentMethods',
+      type: 'select',
+      hasMany: true,
+      options: [
+        { label: 'Stripe', value: 'stripe' },
+        { label: 'Paysera', value: 'paysera' },
+        { label: 'Neopay', value: 'neopay' },
+      ],
+      defaultValue: ['stripe'],
+    },
+    // Provider-specific credentials (or use env vars)
+  ],
+}
+```
+
+### Conditional Stripe Hooks
+
+To make Stripe hooks conditional:
+
+```typescript
+// src/collections/Products/hooks/conditionalStripeImage.ts
+export const conditionalStripeImage = async (args) => {
+  const settings = await getSettings()
+  const stripeEnabled = settings.enabledPaymentMethods?.includes('stripe')
+
+  if (!stripeEnabled) {
+    return args.data
+  }
+
+  // Run existing Stripe image sync logic
+  return addStripeImage(args)
+}
+```
+
+### Provider Implementations
+
+Each provider would have its own implementation file:
+
+```
+src/lib/payments/
+├── types.ts           # Shared interfaces
+├── registry.ts        # Provider registry
+├── stripe.ts          # Stripe implementation
+├── paysera.ts         # Paysera implementation (future)
+└── neopay.ts          # Neopay implementation (future)
+```
+
+### Checkout Flow Updates
+
+1. Fetch enabled payment methods from Settings
+2. Display payment method selector if multiple enabled
+3. Each provider handles its own UI:
+   - Stripe: Embedded Elements
+   - Paysera/Neopay: Redirect to provider's hosted page
+4. Webhook endpoints for each provider
+
+### Migration Path
+
+1. Create payment provider interface
+2. Refactor existing Stripe code to implement interface
+3. Add Settings fields for payment method selection
+4. Make Stripe plugin conditional in `src/plugins/index.ts`
+5. Add new providers as needed
+
+### Implementation Notes
+
+- Each provider needs its own webhook endpoint
+- Transaction collection should store `provider` field
+- Refund logic must be provider-aware
+- Consider abstracting the checkout UI to handle both embedded and redirect flows
+
 ## Currency Configuration
 
 Currency is configured in `src/config/store.ts`:

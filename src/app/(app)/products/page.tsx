@@ -5,6 +5,7 @@ import { ProductGridItem } from '@/components/ProductGridItem'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CategoryFilter } from '@/components/CategoryFilter'
 import { ProductFiltersBar } from '@/components/ProductFiltersBar'
+import { ProductsPagination } from '@/components/ProductsPagination'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 
@@ -19,6 +20,8 @@ type Props = {
   searchParams: Promise<SearchParams>
 }
 
+const PRODUCTS_PER_PAGE = 24
+
 const sortOptions = [
   { name: 'Name (A-Z)', value: 'title' },
   { name: 'Name (Z-A)', value: '-title' },
@@ -28,8 +31,9 @@ const sortOptions = [
 ]
 
 export default async function ShopPage({ searchParams }: Props) {
-  const { q: searchValue, sort, categories: categoriesParam } = await searchParams
+  const { q: searchValue, sort, categories: categoriesParam, page } = await searchParams
   const payload = await getPayload({ config: configPromise })
+  const currentPage = page ? Math.max(1, parseInt(String(page), 10)) : 1
 
   // Parse multi-select categories from comma-separated string
   const selectedCategories = categoriesParam
@@ -49,6 +53,8 @@ export default async function ShopPage({ searchParams }: Props) {
     collection: 'products',
     draft: false,
     overrideAccess: false,
+    limit: PRODUCTS_PER_PAGE,
+    page: currentPage,
     select: {
       title: true,
       slug: true,
@@ -70,18 +76,9 @@ export default async function ShopPage({ searchParams }: Props) {
         ...(searchValue
           ? [
               {
-                or: [
-                  {
-                    title: {
-                      like: searchValue,
-                    },
-                  },
-                  {
-                    description: {
-                      like: searchValue,
-                    },
-                  },
-                ],
+                title: {
+                  like: searchValue,
+                },
               },
             ]
           : []),
@@ -100,9 +97,20 @@ export default async function ShopPage({ searchParams }: Props) {
     },
   })
 
-  const resultsText = products.docs.length > 1 ? 'results' : 'result'
+  const totalProducts = products.totalDocs
+  const totalPages = products.totalPages
+  const resultsText = totalProducts > 1 ? 'results' : 'result'
   const currentSort = sort ? String(sort) : 'title'
   const currentSortName = sortOptions.find((s) => s.value === currentSort)?.name || 'Name (A-Z)'
+
+  // Build base URL for pagination that preserves other params
+  const buildPaginationBaseUrl = () => {
+    const params = new URLSearchParams()
+    if (searchValue) params.set('q', String(searchValue))
+    if (sort) params.set('sort', String(sort))
+    if (categoriesParam) params.set('categories', String(categoriesParam))
+    return `/products?${params.toString()}`
+  }
 
   // Get selected category names for display
   const selectedCategoryNames = selectedCategories
@@ -156,7 +164,7 @@ export default async function ShopPage({ searchParams }: Props) {
               currentSort={currentSort}
               currentSortName={currentSortName}
               searchValue={searchValue ? String(searchValue) : undefined}
-              resultsCount={products.docs.length}
+              resultsCount={totalProducts}
             />
 
             {/* Products grid */}
@@ -171,11 +179,20 @@ export default async function ShopPage({ searchParams }: Props) {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:gap-x-6 sm:gap-y-8 lg:grid-cols-3 xl:gap-x-8">
-                  {products.docs.map((product) => (
-                    <ProductGridItem key={product.id} product={product} />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:gap-x-6 sm:gap-y-8 lg:grid-cols-3 xl:gap-x-8">
+                    {products.docs.map((product) => (
+                      <ProductGridItem key={product.id} product={product} />
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  <ProductsPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    baseUrl={buildPaginationBaseUrl()}
+                  />
+                </>
               )}
             </div>
           </div>
