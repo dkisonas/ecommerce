@@ -260,127 +260,159 @@ Sent automatically when order is created:
 
 Customers can check refund status through their order page at `/orders/[id]`.
 
-## Payment Architecture (Future)
+## Multi-Provider Payment Architecture
 
-This section documents the architecture for supporting multiple payment providers beyond Stripe.
+The system supports multiple payment providers with both embedded (Stripe) and redirect-based (Paysera, Neopay) payment flows.
 
-### Overview
+### Supported Providers
 
-The current system is tightly coupled to Stripe. To support multiple payment providers (Paysera, Neopay, etc.), the system should be refactored to use a provider-agnostic interface.
+| Provider | Flow Type | Status |
+|----------|-----------|--------|
+| **Stripe** | Embedded | Active (default) |
+| **Paysera** | Redirect | Optional |
+| **Neopay** | Redirect | Optional |
 
-### Payment Provider Interface
+### Payment Flow Types
 
-```typescript
-// src/lib/payments/types.ts
-interface PaymentProvider {
-  id: string                    // e.g., 'stripe', 'paysera', 'neopay'
-  name: string                  // Display name
-  icon?: string                 // Icon path or URL
+**Embedded Flow (Stripe)**:
+1. User enters payment details on checkout page
+2. Payment is processed inline
+3. User sees confirmation immediately
 
-  // Core methods
-  createPaymentIntent(order: Order): Promise<PaymentIntent>
-  confirmPayment(paymentId: string): Promise<PaymentResult>
-  refundPayment(paymentId: string, amount: number): Promise<RefundResult>
+**Redirect Flow (Paysera, Neopay)**:
+1. User selects payment method
+2. User is redirected to provider's payment page
+3. After payment, user is redirected back to `/checkout/payment-callback`
+4. Order is confirmed and user sees confirmation
 
-  // Webhook handling
-  handleWebhook(payload: unknown, signature: string): Promise<WebhookResult>
-}
+### Configuration
 
-interface PaymentIntent {
-  id: string
-  clientSecret?: string         // For client-side confirmation (Stripe)
-  redirectUrl?: string          // For redirect-based providers (Paysera)
-  amount: number
-  currency: string
-}
+#### Environment Variables
 
-interface PaymentResult {
-  success: boolean
-  transactionId?: string
-  error?: string
-}
+```env
+# Stripe (default)
+STRIPE_SECRET_KEY=sk_xxx
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_xxx
+STRIPE_WEBHOOKS_SIGNING_SECRET=whsec_xxx
+
+# Paysera (optional)
+PAYSERA_PROJECT_ID=your_project_id
+PAYSERA_SIGN_PASSWORD=your_sign_password
+PAYSERA_TEST_MODE=true
+NEXT_PUBLIC_PAYSERA_ENABLED=true
+
+# Neopay (optional)
+NEOPAY_MERCHANT_ID=your_merchant_id
+NEOPAY_SECRET_KEY=your_secret_key
+NEOPAY_TEST_MODE=true
+NEXT_PUBLIC_NEOPAY_ENABLED=true
 ```
 
-### Settings Configuration
+#### Admin Settings
 
-Add payment method toggles to Settings global:
+Navigate to **Settings > Payments** to enable/disable payment methods. The Settings UI provides toggles for each provider.
 
-```typescript
-// In src/globals/Settings.ts, add to tabs:
-{
-  label: 'Payments',
-  fields: [
-    {
-      name: 'enabledPaymentMethods',
-      type: 'select',
-      hasMany: true,
-      options: [
-        { label: 'Stripe', value: 'stripe' },
-        { label: 'Paysera', value: 'paysera' },
-        { label: 'Neopay', value: 'neopay' },
-      ],
-      defaultValue: ['stripe'],
-    },
-    // Provider-specific credentials (or use env vars)
-  ],
-}
-```
-
-### Conditional Stripe Hooks
-
-To make Stripe hooks conditional:
-
-```typescript
-// src/collections/Products/hooks/conditionalStripeImage.ts
-export const conditionalStripeImage = async (args) => {
-  const settings = await getSettings()
-  const stripeEnabled = settings.enabledPaymentMethods?.includes('stripe')
-
-  if (!stripeEnabled) {
-    return args.data
-  }
-
-  // Run existing Stripe image sync logic
-  return addStripeImage(args)
-}
-```
-
-### Provider Implementations
-
-Each provider would have its own implementation file:
+### Architecture Overview
 
 ```
 src/lib/payments/
-├── types.ts           # Shared interfaces
-├── registry.ts        # Provider registry
-├── stripe.ts          # Stripe implementation
-├── paysera.ts         # Paysera implementation (future)
-└── neopay.ts          # Neopay implementation (future)
+├── types.ts                    # Payment type definitions
+├── index.ts                    # Main exports
+├── refunds.ts                  # Provider-agnostic refund handler
+└── adapters/
+    ├── redirect-base.ts        # Base adapter for redirect providers
+    ├── paysera/
+    │   ├── index.ts            # Paysera adapter exports
+    │   ├── provider.ts         # Paysera provider implementation
+    │   └── types.ts            # Paysera-specific types
+    └── neopay/
+        ├── index.ts            # Neopay adapter exports
+        ├── provider.ts         # Neopay provider implementation
+        └── types.ts            # Neopay-specific types
 ```
 
-### Checkout Flow Updates
+### Checkout Flow
 
-1. Fetch enabled payment methods from Settings
-2. Display payment method selector if multiple enabled
-3. Each provider handles its own UI:
-   - Stripe: Embedded Elements
-   - Paysera/Neopay: Redirect to provider's hosted page
-4. Webhook endpoints for each provider
+When multiple payment methods are enabled:
 
-### Migration Path
+1. **Payment Method Selector** appears in checkout
+2. User selects preferred method
+3. For Stripe: Stripe Elements form appears
+4. For redirect providers: User is redirected to provider
 
-1. Create payment provider interface
-2. Refactor existing Stripe code to implement interface
-3. Add Settings fields for payment method selection
-4. Make Stripe plugin conditional in `src/plugins/index.ts`
-5. Add new providers as needed
+### Payment Callback Handling
 
-### Implementation Notes
+**Browser Redirects** → `/checkout/payment-callback?provider={provider}`
+- Handled by `PaymentCallback` component
+- Uses plugin's `confirmOrder` function
 
-- Each provider needs its own webhook endpoint
-- Transaction collection should store `provider` field
-- Refund logic must be provider-aware
-- Consider abstracting the checkout UI to handle both embedded and redirect flows
+**Server Callbacks** → `/api/payments/{provider}/callback`
+- Validates provider signature
+- Logs callback for audit
+
+### Refund System
+
+Refunds are processed through a provider-agnostic handler:
+
+```typescript
+import { processRefund } from '@/lib/payments/refunds'
+
+// Process refund through appropriate provider
+const result = await processRefund(
+  'stripe',           // Provider name
+  'pi_xxx',           // Transaction ID
+  1000,               // Amount (optional for partial)
+  'Customer request'  // Reason
+)
+```
+
+**Provider-Specific Refund Behavior**:
+- **Stripe**: Automated via Stripe API
+- **Paysera**: Returns pending status (manual processing required)
+- **Neopay**: Automated via Neopay API
+
+### Adding New Providers
+
+To add a new redirect-based provider:
+
+1. Create adapter in `src/lib/payments/adapters/{provider}/`
+2. Implement `RedirectPaymentProvider` interface:
+   ```typescript
+   interface RedirectPaymentProvider {
+     name: string
+     label: string
+     flowType: 'redirect'
+     createPaymentSession(data: PaymentSessionData): Promise<RedirectPaymentResult>
+     parseCallback(request: Request): Promise<PaymentCallbackResult>
+     refundPayment(transactionId: string, amount?: number): Promise<RefundResult>
+   }
+   ```
+3. Export client adapter from `src/lib/payments/index.ts`
+4. Add to `src/providers/index.tsx` in `getAvailablePaymentMethods()`
+5. Create callback route at `/api/payments/{provider}/callback`
+6. Add environment variables
+
+### Implementation Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/payments/types.ts` | Payment type definitions |
+| `src/lib/payments/refunds.ts` | Provider-agnostic refund handler |
+| `src/providers/index.tsx` | Payment method registration |
+| `src/components/checkout/PaymentMethodSelector.tsx` | UI component |
+| `src/components/checkout/PaymentCallback.tsx` | Redirect callback handler |
+| `src/app/(app)/checkout/payment-callback/page.tsx` | Callback page |
+| `src/app/(app)/api/payments/paysera/callback/route.ts` | Paysera webhook |
+| `src/app/(app)/api/payments/neopay/callback/route.ts` | Neopay webhook |
+| `src/globals/Settings.ts` | Payment settings (Payments tab) |
+
+### Security Considerations
+
+- **Signature Verification**: All callbacks are verified using provider-specific signatures
+  - Paysera: MD5 hash verification
+  - Neopay: HMAC-SHA256 signature
+- **Environment Variables**: Credentials stored in environment, not in code
+- **HTTPS Required**: All callback URLs must use HTTPS in production
 
 ## Currency Configuration
 

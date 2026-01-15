@@ -29,10 +29,16 @@ import { toast } from 'sonner'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { CheckoutSteps } from '@/components/checkout/CheckoutSteps'
 import { ShippingMethodSelector } from '@/components/checkout/ShippingMethodSelector'
+import {
+  PaymentMethodSelector,
+  getAvailablePaymentMethods,
+  getPaymentFlowType,
+} from '@/components/checkout/PaymentMethodSelector'
+import { PaymentProviderName } from '@/lib/payments'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 
 const apiKey = `${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}`
-const stripe = loadStripe(apiKey)
+const stripe = apiKey ? loadStripe(apiKey) : null
 
 export const CheckoutPage: React.FC = (): React.ReactElement | null => {
   const { user } = useAuth()
@@ -54,6 +60,10 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
   const [isProcessingPayment, setProcessingPayment] = useState(false)
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<ShippingMethod | null>(null)
   const [shippingCost, setShippingCost] = useState<number>(0)
+  const [availablePaymentMethods] = useState<PaymentProviderName[]>(getAvailablePaymentMethods)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentProviderName | null>(
+    () => (getAvailablePaymentMethods()[0] ?? null),
+  )
 
   const cartIsEmpty = !cart || !cart.items || !cart.items.length
   const cartSubtotal = cart?.subtotal || 0
@@ -68,7 +78,8 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
     hasContactInfo &&
       shippingAddress &&
       (!useDifferentBillingAddress || billingAddress) &&
-      selectedShippingMethod,
+      selectedShippingMethod &&
+      selectedPaymentMethod,
   )
 
   const handleShippingSelect = useCallback(
@@ -104,12 +115,13 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
   }, [])
 
   const initiatePaymentIntent = useCallback(
-    async (paymentID: string): Promise<void> => {
+    async (paymentID: PaymentProviderName): Promise<void> => {
       try {
         const customerEmail = email || user?.email
         const customerFirstName = firstName || user?.firstName || ''
         const customerLastName = lastName || user?.lastName || ''
         const customerPhone = phone || user?.phone || ''
+        const flowType = getPaymentFlowType(paymentID)
 
         const paymentData = (await initiatePayment(paymentID, {
           additionalData: {
@@ -123,10 +135,20 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
             shippingMethodId: selectedShippingMethod?.id,
             shippingCost,
             subtotal: cartSubtotal,
+            // For redirect providers
+            returnUrl: `${process.env.NEXT_PUBLIC_SERVER_URL}/checkout/payment-callback?provider=${paymentID}${customerEmail ? `&email=${customerEmail}` : ''}`,
           },
         })) as Record<string, unknown>
 
         if (paymentData) {
+          // Handle redirect-based payments (Paysera, Neopay)
+          if (flowType === 'redirect' && paymentData.redirectUrl) {
+            // Redirect to provider's payment page
+            window.location.href = paymentData.redirectUrl as string
+            return
+          }
+
+          // Handle embedded payments (Stripe)
           setPaymentData(paymentData)
           setCurrentStep(1) // Move to payment step
         }
@@ -169,7 +191,9 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
     }
   }
 
-  if (!stripe) return null
+  // Only require Stripe if it's the selected payment method
+  const needsStripe = selectedPaymentMethod === 'stripe'
+  if (needsStripe && !stripe) return null
 
   if (cartIsEmpty && isProcessingPayment) {
     return (
@@ -386,16 +410,32 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
                   />
                 </section>
 
+                {/* Payment Method Section - Only shown when multiple methods available */}
+                {availablePaymentMethods.length > 1 && (
+                  <section className="rounded-xl border border-border bg-card p-4 lg:border-0 lg:bg-transparent lg:p-0">
+                    <h2 className="text-lg font-medium text-foreground">Payment method</h2>
+                    <div className="mt-4">
+                      <PaymentMethodSelector
+                        availableMethods={availablePaymentMethods}
+                        selectedMethod={selectedPaymentMethod}
+                        onSelect={setSelectedPaymentMethod}
+                      />
+                    </div>
+                  </section>
+                )}
+
                 {/* Continue Button */}
                 <Button
                   type="button"
                   variant="secondary"
                   size="lg"
                   disabled={!canGoToPayment}
-                  onClick={() => void initiatePaymentIntent('stripe')}
+                  onClick={() => selectedPaymentMethod && void initiatePaymentIntent(selectedPaymentMethod)}
                   className="w-full"
                 >
-                  Continue to payment
+                  {selectedPaymentMethod && getPaymentFlowType(selectedPaymentMethod) === 'redirect'
+                    ? 'Continue to payment'
+                    : 'Continue to payment'}
                 </Button>
 
                 {error && !paymentData && (
@@ -416,8 +456,8 @@ export const CheckoutPage: React.FC = (): React.ReactElement | null => {
               </div>
             ) : null}
 
-            {/* Step 1: Payment - Order Summary + Payment Form */}
-            {isStep1 && paymentData?.['clientSecret'] ? (
+            {/* Step 1: Payment - Order Summary + Payment Form (Stripe only) */}
+            {isStep1 && paymentData?.['clientSecret'] && stripe ? (
               <div className="space-y-6">
                 {/* Order Summary */}
                 <section className="rounded-xl border border-border bg-card p-4">

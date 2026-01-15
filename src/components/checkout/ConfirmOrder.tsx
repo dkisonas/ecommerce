@@ -63,7 +63,7 @@ export const ConfirmOrder: React.FC = () => {
           Completing your order
         </h1>
         <p className="mt-3 text-base text-muted-foreground">
-          We're processing your payment and confirming your order. This will only take a moment.
+          We&apos;re processing your payment and confirming your order. This will only take a moment.
         </p>
 
         {/* Progress dots */}
@@ -74,7 +74,7 @@ export const ConfirmOrder: React.FC = () => {
         </div>
 
         <p className="mt-6 text-xs text-muted-foreground">
-          Please don't close this page
+          Please don&apos;t close this page
         </p>
       </div>
     </div>

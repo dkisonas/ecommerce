@@ -139,6 +139,69 @@ export const Settings: GlobalConfig = {
             },
           ],
         },
+        {
+          label: 'Payments',
+          description: 'Configure which payment methods are available at checkout',
+          fields: [
+            {
+              type: 'group',
+              name: 'paymentMethods',
+              label: 'Payment Methods',
+              fields: [
+                {
+                  type: 'group',
+                  name: 'stripe',
+                  label: 'Stripe',
+                  fields: [
+                    {
+                      name: 'enabled',
+                      type: 'checkbox',
+                      label: 'Enable Stripe',
+                      defaultValue: true,
+                      admin: {
+                        description: 'Credit/debit card payments via Stripe',
+                      },
+                    },
+                  ],
+                },
+                {
+                  type: 'group',
+                  name: 'paysera',
+                  label: 'Paysera',
+                  fields: [
+                    {
+                      name: 'enabled',
+                      type: 'checkbox',
+                      label: 'Enable Paysera',
+                      defaultValue: false,
+                      admin: {
+                        description:
+                          'Bank transfers and e-wallets via Paysera. Requires PAYSERA_PROJECT_ID and PAYSERA_SIGN_PASSWORD env vars.',
+                      },
+                    },
+                  ],
+                },
+                {
+                  type: 'group',
+                  name: 'neopay',
+                  label: 'Neopay',
+                  fields: [
+                    {
+                      name: 'enabled',
+                      type: 'checkbox',
+                      label: 'Enable Neopay',
+                      defaultValue: false,
+                      admin: {
+                        description:
+                          'Bank payments via Neopay. Requires NEOPAY_MERCHANT_ID and NEOPAY_SECRET_KEY env vars.',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
       ],
     },
   ],

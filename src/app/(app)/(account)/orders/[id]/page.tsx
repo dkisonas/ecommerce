@@ -202,7 +202,7 @@ export default async function Order({ params, searchParams }: PageProps) {
                 Thank you for your order!
               </h2>
               <p className="mt-1 text-sm text-green-700 dark:text-green-400">
-                Your order has been confirmed and is being processed. You'll receive a confirmation email shortly with your order details.
+                Your order has been confirmed and is being processed. You&apos;ll receive a confirmation email shortly with your order details.
               </p>
             </div>
           </div>

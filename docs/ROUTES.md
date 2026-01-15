@@ -18,7 +18,8 @@ Complete reference of all frontend routes in the application.
 | Route | Purpose | Notes |
 |-------|---------|-------|
 | `/checkout` | Checkout flow | Multi-step: Contact → Shipping → Payment |
-| `/checkout/confirm-order` | Order confirmation | Shown after successful payment |
+| `/checkout/confirm-order` | Order confirmation | Shown after Stripe payment |
+| `/checkout/payment-callback` | Redirect callback | For Paysera/Neopay returns |
 
 ### Authentication
 
@@ -76,12 +77,14 @@ Logout is handled via the account dropdown menu, not a dedicated route. The auth
 |-------|--------|---------|
 | `/api/refunds/process` | POST | Process approved refund |
 
-### Stripe Webhooks
+### Payment Provider Webhooks
 
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/api/stripe/webhooks/ecommerce` | POST | Payment events |
-| `/api/stripe/webhooks/refunds` | POST | Refund status events |
+| `/api/stripe/webhooks/ecommerce` | POST | Stripe payment events |
+| `/api/stripe/webhooks/refunds` | POST | Stripe refund status events |
+| `/api/payments/paysera/callback` | GET/POST | Paysera payment callbacks |
+| `/api/payments/neopay/callback` | GET/POST | Neopay payment callbacks |
 
 ### Form Submissions
 
@@ -166,8 +169,10 @@ src/app/(app)/
 │       └── page.tsx            # Product detail (/products/[slug])
 ├── checkout/
 │   ├── page.tsx                # Checkout (/checkout)
-│   └── confirm-order/
-│       └── page.tsx            # Confirmation (/checkout/confirm-order)
+│   ├── confirm-order/
+│   │   └── page.tsx            # Stripe confirmation (/checkout/confirm-order)
+│   └── payment-callback/
+│       └── page.tsx            # Redirect callback (/checkout/payment-callback)
 ├── login/
 │   └── page.tsx                # Login (/login)
 ├── create-account/
@@ -191,6 +196,13 @@ src/app/(app)/
     ├── refunds/
     │   └── process/
     │       └── route.ts        # POST /api/refunds/process
+    ├── payments/
+    │   ├── paysera/
+    │   │   └── callback/
+    │   │       └── route.ts    # Payment callbacks
+    │   └── neopay/
+    │       └── callback/
+    │           └── route.ts    # Payment callbacks
     └── stripe/
         └── webhooks/
             ├── ecommerce/

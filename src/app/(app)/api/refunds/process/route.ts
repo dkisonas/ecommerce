@@ -3,14 +3,16 @@ import configPromise from '@payload-config'
 import { headers as getHeaders } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { checkRole } from '@/access/utilities'
-import { processFullRefund, processPartialRefund } from '@/lib/stripe/refunds'
+import { processRefund, getProviderFromTransaction } from '@/lib/payments/refunds'
 import { getPrimaryTransaction } from '@/lib/refunds/validation'
 import type { Order } from '@/payload-types'
+import type { PaymentProviderName } from '@/lib/payments'
 
 /**
  * POST /api/refunds/process
  * Process a refund (admin only)
  * Can process from approved request or directly
+ * Supports multiple payment providers (Stripe, Paysera, Neopay)
  */
 export async function POST(request: Request) {
   try {
@@ -39,14 +41,36 @@ export async function POST(request: Request) {
 
     // Get primary transaction
     const transaction = getPrimaryTransaction(order)
-    if (!transaction || !transaction.stripe?.paymentIntentID) {
+    if (!transaction) {
       return NextResponse.json(
-        { error: 'No valid transaction with payment intent found' },
+        { error: 'No valid transaction found for this order' },
         { status: 400 },
       )
     }
 
-    const paymentIntentId = transaction.stripe.paymentIntentID
+    // Determine payment provider from transaction
+    const provider = getProviderFromTransaction(transaction) as PaymentProviderName
+    if (!provider) {
+      return NextResponse.json(
+        { error: 'Unable to determine payment provider from transaction' },
+        { status: 400 },
+      )
+    }
+
+    // Get the transaction ID for the provider
+    let transactionId: string | null = null
+    if (provider === 'stripe' && transaction.stripe?.paymentIntentID) {
+      transactionId = transaction.stripe.paymentIntentID
+    }
+    // Note: For Paysera and Neopay, transaction IDs would be stored in their respective fields
+    // if the schema was extended to support them
+
+    if (!transactionId) {
+      return NextResponse.json(
+        { error: `No transaction ID found for provider: ${provider}` },
+        { status: 400 },
+      )
+    }
 
     // Determine refund type and amount
     let refundType: 'full' | 'partial'
@@ -81,17 +105,17 @@ export async function POST(request: Request) {
       refundAmount = amount
     }
 
-    // Process refund via Stripe
-    let stripeRefund
-    try {
-      if (refundType === 'full') {
-        stripeRefund = await processFullRefund(paymentIntentId, reason)
-      } else {
-        stripeRefund = await processPartialRefund(paymentIntentId, refundAmount, reason)
-      }
-    } catch (stripeError: any) {
+    // Process refund via the appropriate provider
+    const refundResult = await processRefund(
+      provider,
+      transactionId,
+      refundType === 'partial' ? refundAmount : undefined,
+      reason,
+    )
+
+    if (refundResult.status === 'failed') {
       return NextResponse.json(
-        { error: `Stripe refund failed: ${stripeError.message}` },
+        { error: refundResult.errorMessage || `Refund failed for provider: ${provider}` },
         { status: 400 },
       )
     }
@@ -105,10 +129,9 @@ export async function POST(request: Request) {
         transaction: transaction.id,
         amount: refundAmount,
         type: refundType,
-        status: stripeRefund.status === 'succeeded' ? 'completed' : 'processing',
-        stripeRefundId: stripeRefund.id,
-        stripeChargeId: stripeRefund.charge as string,
-        paymentIntentId,
+        status: refundResult.status === 'succeeded' ? 'completed' : 'processing',
+        stripeRefundId: provider === 'stripe' ? refundResult.refundId : undefined,
+        paymentIntentId: provider === 'stripe' ? transactionId : undefined,
         reason: reason || undefined,
         refundRequest: refundRequestId || undefined,
       },
@@ -130,17 +153,18 @@ export async function POST(request: Request) {
       {
         message: 'Refund processed successfully',
         refund,
-        stripeRefund: {
-          id: stripeRefund.id,
-          status: stripeRefund.status,
-          amount: stripeRefund.amount,
+        providerRefund: {
+          provider,
+          id: refundResult.refundId,
+          status: refundResult.status,
         },
       },
       { status: 201 },
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to process refund'
     return NextResponse.json(
-      { error: error.message || 'Failed to process refund' },
+      { error: errorMessage },
       { status: 400 },
     )
   }

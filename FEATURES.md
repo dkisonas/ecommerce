@@ -59,7 +59,7 @@
 - **Database**: PostgreSQL with Drizzle ORM
 - **Payments**: Stripe (checkout, webhooks, refunds)
 - **Email**: Resend (transactional emails)
-- **Styling**: Tailwind CSS + shadcn/ui components
+- **Styling**: Tailwind CSS + TailwindPlus components
 - **Rich Text**: Lexical editor with block support
 
 ## Plugins Used

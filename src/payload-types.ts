@@ -1856,6 +1856,26 @@ export interface Setting {
     title?: string | null;
     description?: string | null;
   };
+  paymentMethods?: {
+    stripe?: {
+      /**
+       * Credit/debit card payments via Stripe
+       */
+      enabled?: boolean | null;
+    };
+    paysera?: {
+      /**
+       * Bank transfers and e-wallets via Paysera. Requires PAYSERA_PROJECT_ID and PAYSERA_SIGN_PASSWORD env vars.
+       */
+      enabled?: boolean | null;
+    };
+    neopay?: {
+      /**
+       * Bank payments via Neopay. Requires NEOPAY_MERCHANT_ID and NEOPAY_SECRET_KEY env vars.
+       */
+      enabled?: boolean | null;
+    };
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1959,6 +1979,25 @@ export interface SettingsSelect<T extends boolean = true> {
     | {
         title?: T;
         description?: T;
+      };
+  paymentMethods?:
+    | T
+    | {
+        stripe?:
+          | T
+          | {
+              enabled?: T;
+            };
+        paysera?:
+          | T
+          | {
+              enabled?: T;
+            };
+        neopay?:
+          | T
+          | {
+              enabled?: T;
+            };
       };
   updatedAt?: T;
   createdAt?: T;
