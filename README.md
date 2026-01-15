@@ -75,21 +75,25 @@ Use Stripe's test card: `4242 4242 4242 4242` (any future expiry, any CVC).
 
 ```bash
 pnpm dev              # Start development server
-pnpm build            # Build for production
+pnpm build            # Build for production (local)
+pnpm build:prod       # Build with migrations (for deployment)
 pnpm start            # Start production server
-pnpm seed             # Re-run seed script
+pnpm seed             # Create demo content
+pnpm migrate          # Run database migrations
+pnpm migrate:create   # Create a new migration file
 pnpm generate:types   # Regenerate TypeScript types
 pnpm lint             # Run linter
 ```
 
 ## Production Deployment
 
-1. Set up a PostgreSQL database
-2. Configure all environment variables
-3. Set `NEXT_PUBLIC_SERVER_URL` to your production domain
-4. Use production Stripe keys (`sk_live_`, `pk_live_`)
-5. Configure Stripe webhooks to point to `https://yourdomain.com/api/stripe/webhooks`
-6. Verify your email domain in Resend
+See [Deployment Guide](./docs/DEPLOYMENT.md) for full instructions on deploying to Netlify with Neon database (free tiers).
+
+Quick steps:
+1. Create a Neon database
+2. Deploy to Netlify and configure environment variables (migrations run automatically)
+3. Configure Stripe webhooks for your production URL
+4. Verify your email domain in Resend
 
 ## Currency
 
@@ -97,11 +101,26 @@ Default currency is GBP. To change it, edit `src/config/store.ts`.
 
 ## Documentation
 
-- [Features](./FEATURES.md) - Full feature list and technical stack
-- [Detailed Setup Guide](./docs/SETUP.md) - Stripe, email, and database configuration
+All documentation is in the `docs/` folder:
+
+| Document | Description |
+|----------|-------------|
+| [Deployment Guide](./docs/DEPLOYMENT.md) | Deploy to Netlify + Neon (free tiers) |
+| [Setup Guide](./docs/SETUP.md) | Detailed local setup, Stripe CLI, email |
+| [Features](./docs/FEATURES.md) | Full feature list and technical stack |
+| [Ecommerce](./docs/ECOMMERCE.md) | Orders, payments, refunds, shipping |
+| [Routes](./docs/ROUTES.md) | All frontend and API routes |
+| [Admin Guide](./docs/ADMIN-GUIDE.md) | Quick reference for admin tasks |
+| [Forms](./docs/FORMS.md) | How to create and use forms |
+| [Testing Plan](./docs/TESTING-PLAN.md) | Comprehensive testing checklist |
+
+### External Resources
+
 - [Payload CMS Docs](https://payloadcms.com/docs)
 - [Stripe Docs](https://stripe.com/docs)
 - [Resend Docs](https://resend.com/docs)
+- [Neon Docs](https://neon.tech/docs)
+- [Netlify Docs](https://docs.netlify.com)
 
 ## License
 

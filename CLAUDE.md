@@ -163,12 +163,13 @@ Optional:
 
 ## Documentation
 
-- `docs/FEATURES.md` - Complete feature documentation (how everything works)
-- `docs/SETUP.md` - Detailed setup guide
-- `docs/ECOMMERCE.md` - Ecommerce system overview (orders, refunds, shipping)
-- `docs/FORMS.md` - How to create and use forms
+- `docs/DEPLOYMENT.md` - Deploy to Netlify + Neon (free tiers)
+- `docs/SETUP.md` - Detailed local setup guide
+- `docs/FEATURES.md` - Complete feature documentation
+- `docs/ECOMMERCE.md` - Ecommerce system (orders, payments, refunds, shipping)
 - `docs/ROUTES.md` - All frontend and API routes
 - `docs/ADMIN-GUIDE.md` - Quick reference for admin tasks
+- `docs/FORMS.md` - How to create and use forms
 - `docs/TESTING-PLAN.md` - Comprehensive testing checklist
 
 ## Project Status (January 2026)
