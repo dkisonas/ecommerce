@@ -158,7 +158,6 @@ Required:
 - `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`
 
 Optional:
-- `SITE_NAME`, `COMPANY_NAME` - Fallback if not set in admin Settings
 - `PREVIEW_SECRET` - For draft preview functionality
 
 ## Documentation

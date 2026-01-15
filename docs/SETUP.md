@@ -199,8 +199,6 @@ EMAIL_FROM_NAME=Your Store Name
 ### Optional
 
 ```env
-SITE_NAME=My Store              # Fallback if not set in admin
-COMPANY_NAME=My Company Ltd     # Fallback if not set in admin
 PREVIEW_SECRET=preview-secret   # For draft preview functionality
 ```
 

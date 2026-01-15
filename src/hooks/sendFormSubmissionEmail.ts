@@ -12,10 +12,10 @@ export const sendFormSubmissionEmail: CollectionAfterChangeHook<FormSubmission> 
     return doc
   }
 
-  // Fetch the settings
+  // Fetch the settings (site name comes from Settings global)
   let settings: Setting | null = null
-  let siteName = process.env.SITE_NAME || 'Our Store'
-  let companyName = process.env.COMPANY_NAME || siteName
+  let siteName = 'Our Store'
+  let companyName = siteName
 
   try {
     settings = await payload.findGlobal({

@@ -16,12 +16,12 @@ export const storeConfig = {
   },
 
   /**
-   * Store information
-   * Used in emails, metadata, etc.
+   * Store information (defaults)
+   * Actual values are fetched from Settings global where available
    */
   store: {
-    name: process.env.SITE_NAME || 'My Store',
-    company: process.env.COMPANY_NAME || '',
+    name: 'My Store',
+    company: '',
   },
 }
 

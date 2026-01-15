@@ -56,9 +56,9 @@ export const sendOrderConfirmationEmail: CollectionAfterChangeHook<Order> = asyn
   )
 
   try {
-    // Get settings for site name
-    let siteName = process.env.SITE_NAME || 'Our Store'
-    let companyName = process.env.COMPANY_NAME || siteName
+    // Get settings for site name (fetched from Settings global)
+    let siteName = 'Our Store'
+    let companyName = siteName
     try {
       const settings = await payload.findGlobal({ slug: 'settings' })
       if (settings?.siteName) siteName = settings.siteName
